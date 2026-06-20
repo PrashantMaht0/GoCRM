@@ -1,0 +1,18 @@
+server:
+  port: 8080
+
+grpc:
+  server:
+    port: 9090
+
+spring:
+  application:
+    name: go-crm-core-service
+  datasource:
+    url: jdbc:postgresql://db.hdsmyuifcauyiqhcytph.supabase.co:5432/postgres
+    username: postgres
+    password: ${SUPABASE_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true

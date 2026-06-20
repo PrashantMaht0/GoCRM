@@ -1,0 +1,11 @@
+/* go-crm-frontend/src/assets/index.css */
+@import "tailwindcss";
+
+@theme {
+  --color-crm-darkest: #2d2a24;
+  --color-crm-dark: #4a453a;
+  --color-crm-brown: #676050;
+  --color-crm-light: #eaf8d8;
+  --color-crm-accent: #d3f0ad;
+  --color-crm-white: #ffffff;
+}

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "com.gocrm.grpc";
+
+package whatsapp;
+
+service IngestionRouter {
+  rpc ForwardMessage(WhatsAppMessageRequest) returns (MessageRoutingResponse);
+}
+
+message WhatsAppMessageRequest {
+  string phone_number_id = 1;
+  string customer_wa_id = 2;
+  string raw_text_body = 3;
+  string wamid = 4;
+}
+
+message MessageRoutingResponse {
+  bool success = 1;
+  string error_message = 2;
+}
