@@ -33,6 +33,9 @@ public class Company {
     @Column(name = "company_code", unique = true, nullable = false)
     private String companyCode;
 
+    @Column(name="owner_id", nullable=false)
+    private Long ownerId;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = ZonedDateTime.now();
@@ -48,4 +51,6 @@ public class Company {
     public void setCreatedAt(ZonedDateTime createdAt) { this.createdAt = createdAt; }
     public String getCompanyCode() { return companyCode; }
     public void setCompanyCode(String companyCode) { this.companyCode = companyCode; }
+    public Long getOwnerId(){return ownerId;}
+    public void setOwnerId(Long ownerId){this.ownerId=ownerId;}
 }

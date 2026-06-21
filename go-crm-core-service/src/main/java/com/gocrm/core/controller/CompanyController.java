@@ -1,12 +1,15 @@
 package com.gocrm.core.controller;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,10 +41,9 @@ public class CompanyController {
         company.setCompanyName(request.get("name"));
         String uniqueCode = "GOCRM-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
         company.setCompanyCode(uniqueCode);
+        company.setOwnerId(admin.getId());
 
         Company savedCompany = companyRepository.save(company);
-
-        admin.setCompany(savedCompany);
         userRepository.save(admin);
 
         return ResponseEntity.ok(Map.of(
@@ -85,4 +87,44 @@ public class CompanyController {
 
         return ResponseEntity.ok(Map.of("message", "Successfully joined the workspace."));
     }
+
+    @GetMapping("/owned")
+    public ResponseEntity<?> getOwnedCompanies(Authentication authentication) {
+        String userEmail = authentication.getName();
+        User currentUser = userRepository.findByEmail(userEmail).orElseThrow();
+
+        List<Company> ownedCompanies = companyRepository.findByOwnerId(currentUser.getId());
+
+        List<Map<String, Object>> response = ownedCompanies.stream().map(c -> Map.<String, Object>of(
+            "id", (Object) c.getId(),
+            "name", c.getCompanyName(),
+            "companyCode", c.getCompanyCode()
+        )).collect(Collectors.toList());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getCompanyById(@PathVariable Long id, Authentication authentication) {
+        String userEmail = authentication.getName();
+        User currentUser = userRepository.findByEmail(userEmail).orElseThrow();
+
+        Company company = companyRepository.findById(id).orElse(null);
+
+        if (company == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Security check: Ensure the person requesting this company is actually the owner
+        if (!company.getOwnerId().equals(currentUser.getId())) {
+            return ResponseEntity.status(403).body(Map.of("error", "Access denied. You do not own this workspace."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "id", company.getId(),
+            "name", company.getCompanyName(),
+            "companyCode", company.getCompanyCode()
+        ));
+    }
+    
 }

@@ -5,7 +5,7 @@ import { useGoogleLogin } from '@react-oauth/google'; // 1. Import the hook
 
 export default function AuthPage() {
   const { login } = useAuth();
-  const [selectedRole, setSelectedRole] = useState<Role>('USER');
+  const [selectedRole, setSelectedRole] = useState<Role>('SALES_REP');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
@@ -80,12 +80,12 @@ export default function AuthPage() {
           <div className="bg-gray-100 p-1 rounded-lg inline-flex relative w-64 border border-gray-200/50">
             <button
               type="button"
-              onClick={() => setSelectedRole('USER')}
+              onClick={() => setSelectedRole('SALES_REP')}
               className={`flex-1 py-2 text-sm font-medium rounded-md z-10 transition-colors duration-200 ${
-                selectedRole === 'USER' ? 'text-crm-darkest' : 'text-gray-400 hover:text-crm-dark'
+                selectedRole === 'SALES_REP' ? 'text-crm-darkest' : 'text-gray-400 hover:text-crm-dark'
               }`}
             >
-              Sales Rep
+              User
             </button>
             <button
               type="button"

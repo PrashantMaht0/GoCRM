@@ -1,7 +1,7 @@
 import  { createContext, useContext, useState, useEffect } from 'react';
 import type {ReactNode} from 'react' ;
 
-export type Role = 'ADMIN' | 'USER';
+export type Role = 'ADMIN' | 'SALES_REP';
 
 interface UserContextType {
   id: string;
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('accessToken'); 
     localStorage.removeItem('gocrm_user');
     setUser(null);
-  };
+  };  
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
