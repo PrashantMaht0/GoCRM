@@ -1,17 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
+import BotTrainingSettings from './BotTrainingSettings';
 
 export default function CompanySettings() {
   const [company, setCompany] = useState<{ id: number; name: string; companyCode: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  
+  // State for the form
   const [waFormData, setWaFormData] = useState({
     phoneNumberId: '',
     wabaId: '',
     accessToken: '',
     webhookVerifyToken: '',
   });
+  
   const [isSubmittingWA, setIsSubmittingWA] = useState(false);
   const [waSaveStatus, setWaSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const { activeCompanyId } = useOutletContext<{ activeCompanyId: string }>();
@@ -25,16 +29,34 @@ export default function CompanySettings() {
     const fetchCompanySettings = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`http://localhost:8080/api/v1/companies/${activeCompanyId}`, {
+        
+        // 1. Fetch Company Details
+        const companyResponse = await fetch(`http://localhost:8080/api/v1/companies/${activeCompanyId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
-        if (response.ok) {
-          const data = await response.json();
+        if (companyResponse.ok) {
+          const data = await companyResponse.json();
           setCompany(data);
         }
+
+        // 2. Fetch Existing WhatsApp Config to populate the form with actual data
+        const waResponse = await fetch(`http://localhost:8080/api/v1/whatsapp-config/${activeCompanyId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (waResponse.ok) {
+          const waData = await waResponse.json();
+          // Update the form state with the real data from the database
+          setWaFormData({
+            phoneNumberId: waData.phoneNumberId || '',
+            wabaId: waData.wabaId || '',
+            accessToken: waData.accessToken || '',
+            webhookVerifyToken: waData.webhookVerifyToken || '',
+          });
+        }
       } catch (error) {
-        console.error('Failed to fetch company details', error);
+        console.error('Failed to fetch company details or WA config', error);
       } finally {
         setIsLoading(false);
       }
@@ -65,31 +87,29 @@ export default function CompanySettings() {
     setIsSubmittingWA(true);
     setWaSaveStatus('idle')
 
-    try{
+    try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch('http://localhost:8080/api/v1/whatsapp-config',{
         method: 'POST' ,
         headers: { 
           'Content-Type':'application/json',
           'Authorization': `Bearer ${token}`},
-          body: JSON.stringify(waFormData)
+          body: JSON.stringify({ ...waFormData, companyId: activeCompanyId }) // Ensure company ID is passed
       });
 
-      if(response.ok){
+      if (response.ok) {
         setWaSaveStatus('success');
         setTimeout(()=>setWaSaveStatus('idle'),3000); 
-      }
-      else{
+      } else {
         setWaSaveStatus('error');
         console.log("Server rejected the WhatsApp Configuration.");
       }
-    }catch (error){
+    } catch (error) {
       console.error("Network error while saving WhatsApp config:", error);
       setWaSaveStatus('error');
-    }finally {
+    } finally {
       setIsSubmittingWA(false);
     }
-    
   };
 
   if (isLoading) return <div className="p-8 text-gray-500">Loading settings...</div>;
@@ -146,24 +166,29 @@ export default function CompanySettings() {
           </div>
         </div>
 
-        <form onSubmit={handleSaveWaConfig} className="p-6 space-y-6">
+        {/* Added autoComplete="off" to the form element */}
+        <form onSubmit={handleSaveWaConfig} className="p-6 space-y-6" autoComplete="off">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-2">
               <label htmlFor="phoneNumberId" className="block text-sm font-medium text-gray-700">Phone Number ID</label>
-              <input type="text" id="phoneNumberId" name="phoneNumberId" value={waFormData.phoneNumberId} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="e.g., 1043234556778" required />
+              {/* Added autoComplete="off" */}
+              <input type="text" id="phoneNumberId" name="phoneNumberId" value={waFormData.phoneNumberId} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="e.g., 1043234556778" required autoComplete="off" />
             </div>
             <div className="space-y-2">
               <label htmlFor="wabaId" className="block text-sm font-medium text-gray-700">WhatsApp Business Account ID</label>
-              <input type="text" id="wabaId" name="wabaId" value={waFormData.wabaId} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="e.g., 11223344556677" required />
+              {/* Added autoComplete="off" */}
+              <input type="text" id="wabaId" name="wabaId" value={waFormData.wabaId} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="e.g., 11223344556677" required autoComplete="off" />
             </div>
           </div>
           <div className="space-y-2">
             <label htmlFor="accessToken" className="block text-sm font-medium text-gray-700">Permanent Access Token</label>
-            <input type="password" id="accessToken" name="accessToken" value={waFormData.accessToken} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm font-mono" placeholder="EAALx..." required />
+            {/* Added autoComplete="new-password" to stop aggressive password autofill */}
+            <input type="password" id="accessToken" name="accessToken" value={waFormData.accessToken} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm font-mono" placeholder="EAALx..." required autoComplete="new-password" />
           </div>
           <div className="space-y-2">
             <label htmlFor="webhookVerifyToken" className="block text-sm font-medium text-gray-700">Webhook Verify Token</label>
-            <input type="text" id="webhookVerifyToken" name="webhookVerifyToken" value={waFormData.webhookVerifyToken} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="Create a custom secret string..." required />
+            {/* Added autoComplete="off" */}
+            <input type="text" id="webhookVerifyToken" name="webhookVerifyToken" value={waFormData.webhookVerifyToken} onChange={handleWaInputChange} className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-crm-accent outline-none text-sm" placeholder="Create a custom secret string..." required autoComplete="off" />
             <p className="text-xs text-gray-400">Paste this exact string into the Meta Developer Dashboard when setting up your webhook.</p>
           </div>
 
@@ -183,7 +208,10 @@ export default function CompanySettings() {
         </form>
       </div>
 
-      {/* 3. Danger Zone */}
+      {/* 3. AI Bot Training Settings (NEW) */}
+      <BotTrainingSettings />
+
+      {/* 4. Danger Zone */}
       <div className="bg-red-50 rounded-xl border border-red-100 p-6">
         <h2 className="text-lg font-medium text-red-800 mb-2">Danger Zone</h2>
         <p className="text-sm text-red-600 mb-4">Deleting this company will permanently remove all associated leads, chat logs, and settings. This cannot be undone.</p>

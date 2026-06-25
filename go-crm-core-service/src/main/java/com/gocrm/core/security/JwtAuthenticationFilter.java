@@ -47,11 +47,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         jwt = authHeader.substring(7);
-        if (jwt.isBlank() || jwt.equals("null") || jwt.equals("undefined")) {
+
+        try{
+            userEmail = jwtService.extractUsername(jwt);
+            if (jwt.isBlank() || jwt.equals("null") || jwt.equals("undefined")) {
             filterChain.doFilter(request, response);
             return;
-        }
-        userEmail = jwtService.extractUsername(jwt); 
+            }
 
         if (userEmail != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             
@@ -69,8 +71,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 
                 SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
         }
+        catch (io.jsonwebtoken.ExpiredJwtException e) {
+            System.out.println("JWT Expired. Rejecting request.");
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("JWT Token has expired. Please log in again.");
+            return;
+        }
+        
         filterChain.doFilter(request, response);
     }
 }
