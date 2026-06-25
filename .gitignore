@@ -19,6 +19,8 @@ tsconfig.app.json
 tsconfig.json
 tsconfig.node.json
 vite.config.ts
+postcss.config.js
+tailwind.config.js
 
 
 .vscode/*
@@ -33,3 +35,5 @@ vite.config.ts
 
 temp.txt
 target/
+
+.env
