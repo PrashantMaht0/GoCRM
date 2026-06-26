@@ -1,18 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom'; 
 
 export default function UserSettings() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+  const navigate = useNavigate();
 
-  const handleLeaveCompany = () => {
-    // API call to set user.company_id to null
-    console.log("Leaving company...");
-    logout(); // Log them out so they hit the Join Company page next time
+  useEffect(() => {
+    const fetchFullProfile = async () => {
+      try {
+        const token = localStorage.getItem('accessToken');
+        const response = await fetch('http://localhost:8080/api/v1/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (updateUser && data.fullName) {
+            updateUser({ fullName: data.fullName });
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch full user profile", error);
+      }
+    };
+
+    fetchFullProfile();
+  }, [updateUser]);
+
+  // 2. Functional Leave Workspace
+  const handleLeaveCompany = async () => {
+    setIsLeaving(true);
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch('http://localhost:8080/api/v1/users/leave-workspace', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        console.log("Successfully left the company.");
+        navigate('/user/join-company'); // Redirect to Join Company page
+        logout(); // Log them out so they hit the Join Company page next time
+      } else {
+        console.error("Failed to leave workspace on the server.");
+        setIsLeaving(false);
+      }
+    } catch (error) {
+      console.error("Network error while leaving workspace", error);
+      setIsLeaving(false);
+    }
   };
 
+  // 3. Delete Account (Placeholder as requested)
   const handleDeleteAccount = () => {
-    // API call to DELETE /users/{id}
     console.log("Deleting account...");
     logout();
   };
@@ -32,13 +75,14 @@ export default function UserSettings() {
               {user?.email?.charAt(0).toUpperCase()}
             </div>
             <div>
+              {/* fullName will now correctly populate from the useEffect fetch */}
               <p className="text-lg font-medium text-crm-darkest">{user?.fullName || 'Sales Representative'}</p>
               <p className="text-sm text-gray-500">{user?.email}</p>
             </div>
           </div>
           <div className="pt-4 border-t border-gray-100">
              <p className="text-sm text-gray-500">Role</p>
-             <p className="font-medium text-crm-darkest capitalize">{user?.role.replace('_', ' ').toLowerCase()}</p>
+             <p className="font-medium text-crm-darkest capitalize">{user?.role?.replace('_', ' ').toLowerCase()}</p>
           </div>
         </div>
       </div>
@@ -57,8 +101,14 @@ export default function UserSettings() {
             <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
               <p className="text-sm font-medium text-orange-800 mb-3">Are you sure you want to disconnect from this company?</p>
               <div className="flex space-x-3">
-                <button onClick={handleLeaveCompany} className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700">Yes, Leave Workspace</button>
-                <button onClick={() => setShowLeaveConfirm(false)} className="px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200">Cancel</button>
+                <button 
+                  onClick={handleLeaveCompany} 
+                  disabled={isLeaving}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium text-white ${isLeaving ? 'bg-orange-400 cursor-not-allowed' : 'bg-orange-600 hover:bg-orange-700'}`}
+                >
+                  {isLeaving ? 'Leaving...' : 'Yes, Leave Workspace'}
+                </button>
+                <button onClick={() => setShowLeaveConfirm(false)} className="px-4 py-2 bg-white text-gray-700 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50">Cancel</button>
               </div>
             </div>
           )}

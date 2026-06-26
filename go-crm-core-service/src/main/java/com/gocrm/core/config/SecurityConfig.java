@@ -31,11 +31,11 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // Tell Spring we are building a stateless REST API (no server-side sessions)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/v1/webhook/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
+                .requestMatchers("/ws-crm/**").permitAll() 
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/user/**").hasRole("SALES_REP")
                 .anyRequest().authenticated()
@@ -49,7 +49,7 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         // Allow your React Vite port to communicate with this server
-        configuration.setAllowedOrigins(List.of("http://localhost:5173")); 
+        configuration.setAllowedOrigins(List.of("http://localhost:5173","http://localhost:5174")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
         // CRITICAL: Allows HttpOnly cookies to cross ports for your Refresh Tokens

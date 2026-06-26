@@ -2,6 +2,9 @@ package com.gocrm.core.entity;
 
 import java.time.ZonedDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,6 +28,7 @@ public class User {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "company_id", nullable=true)
+    @JsonIgnore
     private Company company;
 
     @Column(nullable = false, unique = true)
@@ -62,4 +66,9 @@ public class User {
     public void setRole(Role role) { this.role = role; }
     public ZonedDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(ZonedDateTime createdAt) { this.createdAt = createdAt; }
+
+    @JsonProperty("companyId")
+    public Long getCompanyIdForJson() {
+        return company != null ? company.getId() : null;
+    }
 }

@@ -56,7 +56,7 @@ export default function App() {
         <Route path="*" element={
           <Navigate to={
             user.role === 'ADMIN' ? "/admin/dashboard" : 
-            (user.companyId ? "/user" : "/join-company")
+            (user.companyId ? "/user/dashboard" : "/join-company")
           } replace />
         } />
       </Routes>

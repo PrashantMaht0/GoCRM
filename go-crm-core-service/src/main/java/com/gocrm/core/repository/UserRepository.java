@@ -11,6 +11,6 @@ import com.gocrm.core.entity.User;
 public interface UserRepository extends JpaRepository<User, Long> {
     
     Optional<User> findByEmail(String email);
-    
+    Optional<User> findFirstByCompanyId(Long companyId);
     boolean existsByEmail(String email);
 }

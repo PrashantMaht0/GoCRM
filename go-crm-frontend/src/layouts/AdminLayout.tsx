@@ -4,11 +4,32 @@ import { useAuth } from '../contexts/AuthContext';
 
 
 export default function AdminLayout() {
-  const { user, logout } = useAuth();
+  const { user, logout , updateUser} = useAuth();
   const location = useLocation();
   const [companies, setCompanies] = useState<any[]>([]);
   const [activeCompanyId, setActiveCompanyId] = useState<string>('');
 
+  useEffect(() => {
+      const fetchFullProfile = async () => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          const response = await fetch('http://localhost:8080/api/v1/users/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (updateUser && data.fullName) {
+              updateUser({ fullName: data.fullName });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch full user profile", error);
+        }
+      };
+  
+      fetchFullProfile();
+    }, [updateUser]);
   useEffect(() => {
     const fetchCompanies = async () => {
       try {

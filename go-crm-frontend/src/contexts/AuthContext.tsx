@@ -1,5 +1,5 @@
-import  { createContext, useContext, useState, useEffect } from 'react';
-import type {ReactNode} from 'react' ;
+import { createContext, useContext, useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 
 export type Role = 'ADMIN' | 'SALES_REP';
 
@@ -16,6 +16,7 @@ interface AuthContextType {
   loading: boolean;
   login: (token: string, userData: UserContextType) => void;
   logout: () => void;
+  updateUser: (updates: Partial<UserContextType>) => void; 
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,8 +46,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };  
 
+  const updateUser = (updates: Partial<UserContextType>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser); // Update React state
+      localStorage.setItem('gocrm_user', JSON.stringify(updatedUser)); // Sync with browser storage
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, updateUser }}>
       {!loading && children}
     </AuthContext.Provider>
   );

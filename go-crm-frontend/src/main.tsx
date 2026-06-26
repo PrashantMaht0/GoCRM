@@ -1,6 +1,7 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.tsx'
+// @ts-expect-error CSS module handled by bundler
 import './assets/index.css'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'

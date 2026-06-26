@@ -1,10 +1,33 @@
-import React, { useState } from 'react';
+
+import {useState, useEffect} from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 
 export default function SalesRepLayout() {
-  const { user , logout} = useAuth();
+  const { user , logout, updateUser} = useAuth();
   const location = useLocation();
+
+  useEffect(() => {
+      const fetchFullProfile = async () => {
+        try {
+          const token = localStorage.getItem('accessToken');
+          const response = await fetch('http://localhost:8080/api/v1/users/me', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            if (updateUser && data.fullName) {
+              updateUser({ fullName: data.fullName });
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch full user profile", error);
+        }
+      };
+  
+      fetchFullProfile();
+    }, [updateUser]);
 
   const navItems = [
     { path: '/user/dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
@@ -70,7 +93,7 @@ export default function SalesRepLayout() {
             </div>
             <div className="overflow-hidden">
               <p className="text-sm font-medium text-crm-white truncate">{user?.email}</p>
-              <p className="text-xs text-crm-brown">Sales Rep</p>
+              <p className="text-xs text-crm-brown">{user?.fullName}</p>
             </div>
           </div>
           <button onClick={logout} title="Logout" className="text-crm-brown hover:text-red-400 transition-colors">

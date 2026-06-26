@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom'; 
 
 export default function JoinCompany() {
-  const { user, logout } = useAuth();
+  
+  const { user, logout, updateUser } = useAuth(); 
+  const navigate = useNavigate(); 
+  
   const [companyCode, setCompanyCode] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +30,20 @@ export default function JoinCompany() {
       });
 
       if (response.ok) {
-        window.location.href = '/user/dashboard';
+        const meResponse = await fetch('http://localhost:8080/api/v1/users/me', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (meResponse.ok) {
+          const freshUser = await meResponse.json();
+          updateUser({ 
+            companyId: freshUser.companyId, 
+            fullName: freshUser.fullName 
+          });
+        }
+        
+        navigate('/user/dashboard'); 
+        
       } else {
         const data = await response.json();
         setError(data.error || 'Invalid company code. Please check with your administrator.');
