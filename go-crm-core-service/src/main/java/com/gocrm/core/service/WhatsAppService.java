@@ -30,6 +30,8 @@ public class WhatsAppService {
     private final ConversationLogRepository conversationLogRepository; 
     private final SimpMessagingTemplate messagingTemplate;
     private final UserRepository userRepository;
+    private final ChatSummarizationService chatSummarizationService;
+    private final SupportTicketRepository supportTicketRepository;  
 
     public WhatsAppService(ChatModel chatModel, 
                            CompanyBotValueRepository botValueRepository, 
@@ -38,7 +40,9 @@ public class WhatsAppService {
                            LeadRepository leadRepository,
                            ConversationLogRepository conversationLogRepository,
                            SimpMessagingTemplate messagingTemplate,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           ChatSummarizationService chatSummarizationService,
+                           SupportTicketRepository supportTicketRepository) {
         this.chatModel = chatModel;
         this.botValueRepository = botValueRepository;
         this.waConfigRepository = waConfigRepository;
@@ -47,6 +51,8 @@ public class WhatsAppService {
         this.conversationLogRepository = conversationLogRepository;
         this.messagingTemplate = messagingTemplate;
         this.userRepository = userRepository;
+        this.chatSummarizationService = chatSummarizationService;
+        this.supportTicketRepository = supportTicketRepository;
     }
 
     public void processIncomingMessage(String payload) {
@@ -114,19 +120,50 @@ public class WhatsAppService {
 
                 // 3. Check for Human Handover
                 if (messageText.toLowerCase().contains("@sales_representative")) {
-                    lead.setBotMode(false); // Disengage AI
+                    lead.setBotMode(false); 
                     
-                    // 🚀 NEW LOGIC: Assign to a human representative automatically
+                    // Assign to a human representative automatically
                     Optional<User> availableRep = userRepository.findFirstByCompanyId(companyId);
                     if (availableRep.isPresent()) {
                         lead.setAssignedUserId(availableRep.get().getId());
-                    } else {
-                        System.err.println("No human representatives found for company " + companyId);
                     }
-
                     leadRepository.save(lead);
 
+                    // 🚀 TRIGGER ASYNC WORKER: Let the AI summarize the chat in the background
+                    chatSummarizationService.generateAndSaveSummary(lead.getId());
+
                     String transferMsg = "I am transferring you to a human representative. They will review our chat and be with you shortly.";
+                    sendReplyAndLog(senderPhone, transferMsg, receivingPhoneNumberId, accessToken, lead.getId());
+                    return;
+                }
+
+                // 4. Check for Support Ticket
+                if (messageText.toLowerCase().contains("@raise_support_ticket")) {
+                    lead.setBotMode(false); // Disengage AI so human can talk
+                    
+                    // Smart Routing: Keep existing rep if they have one, else find a new one
+                    Long designatedRepId = lead.getAssignedUserId();
+                    if (designatedRepId == null) {
+                        designatedRepId = userRepository.findFirstByCompanyId(companyId)
+                                .map(User::getId)
+                                .orElse(null);
+                        lead.setAssignedUserId(designatedRepId);
+                    }
+                    leadRepository.save(lead);
+
+                    // Create the formal Support Ticket in your new table
+                    SupportTicket ticket = new SupportTicket();
+                    ticket.setCompanyId(companyId);
+                    ticket.setLeadId(lead.getId());
+                    ticket.setAssignedUserId(designatedRepId);
+                    ticket.setTicketStatus("OPEN");
+                    ticket.setIssueDescription(messageText); // Save their initial message as the description
+                    supportTicketRepository.save(ticket);
+
+                    // TRIGGER: Summarize the chat so far for the support rep
+                    chatSummarizationService.generateAndSaveSummary(lead.getId());
+
+                    String transferMsg = "Your support ticket has been opened. A representative will review your issue and be with you shortly.";
                     sendReplyAndLog(senderPhone, transferMsg, receivingPhoneNumberId, accessToken, lead.getId());
                     return;
                 }

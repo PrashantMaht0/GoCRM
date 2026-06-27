@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "conversation_logs")
+@Table(name = "conversation_logs" , indexes = {
+    @Index(name = "idx_lead_id_created_id", columnList = "lead_id, created_at")
+})
 public class ConversationLog {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

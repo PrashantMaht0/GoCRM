@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
+import org.hibernate.annotations.CreationTimestamp;
+
 @Entity
 @Table(name = "leads")
 public class Lead {
@@ -30,9 +32,10 @@ public class Lead {
     private boolean botMode = true; 
 
     @Column(name = "contract_value")
-    private BigDecimal contractValue;
+    private Double contractValue;
 
-    @Column(name = "created_at")
+    @CreationTimestamp
+    @Column(name = "created_at",updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
 
     // Getters and Setters...
@@ -50,6 +53,6 @@ public class Lead {
     public void setPipelineStatus(String pipelineStatus) { this.pipelineStatus = pipelineStatus; }
     public boolean isBotMode() { return botMode; }
     public void setBotMode(boolean botMode) { this.botMode = botMode; }
-    public BigDecimal getContractValue() { return contractValue; }
-    public void setContractValue(BigDecimal contractValue) { this.contractValue = contractValue; }
+    public Double getContractValue() { return contractValue; }
+    public void setContractValue(Double contractValue) { this.contractValue = contractValue; }
 }

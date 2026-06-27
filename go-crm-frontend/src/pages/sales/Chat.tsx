@@ -20,6 +20,15 @@ interface ConversationLog {
   createdAt: string;
 }
 
+// 🚀 NEW: Define the Support Ticket Interface
+interface SupportTicket {
+  id: number;
+  leadId: number;
+  ticketStatus: string;
+  issueDescription: string;
+  createdAt: string;
+}
+
 export default function Chat() {
   const { user } = useAuth();
   
@@ -29,38 +38,46 @@ export default function Chat() {
   const [messages, setMessages] = useState<ConversationLog[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
+  
+  // 🚀 NEW: State for Support Tickets
+  const [activeTickets, setActiveTickets] = useState<SupportTicket[]>([]);
 
-  // 3. Fetch Leads when the component loads
+  // 3. Fetch Leads and Tickets when the component loads
   useEffect(() => {
-    const fetchLeads = async () => {
+    const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        // We will build this backend endpoint next!
-        const response = await fetch(`http://localhost:8080/api/v1/leads`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          // Filter to only show leads where the human has taken over (botMode = false)
+        const headers = { 'Authorization': `Bearer ${token}` };
+
+        // Fetch Leads
+        const leadsRes = await fetch(`http://localhost:8080/api/v1/leads`, { headers });
+        if (leadsRes.ok) {
+          const data = await leadsRes.json();
           const humanLeads = data.filter((lead: Lead) => !lead.botMode);
           setLeads(humanLeads);
           if (humanLeads.length > 0) setActiveLead(humanLeads[0]);
         }
+
+        // 🚀 NEW: Fetch Active Tickets
+        const ticketsRes = await fetch(`http://localhost:8080/api/v1/tickets/active`, { headers });
+        if (ticketsRes.ok) {
+          const ticketsData = await ticketsRes.json();
+          setActiveTickets(ticketsData);
+        }
+
       } catch (error) {
-        console.error("Failed to fetch leads", error);
+        console.error("Failed to fetch dashboard data", error);
       } finally {
         setIsLoadingLeads(false);
       }
     };
-    fetchLeads();
+    fetchDashboardData();
   }, []);
 
-// 4. Fetch Messages and Establish WebSocket Connection
+  // 4. Fetch Messages and Establish WebSocket Connection
   useEffect(() => {
     if (!activeLead) return;
 
-    // A. Fetch the historical messages via standard HTTP
     const fetchMessages = async () => {
       try {
         const token = localStorage.getItem('accessToken');
@@ -79,7 +96,6 @@ export default function Chat() {
     
     fetchMessages();
 
-    // B. Setup the WebSocket for live updates
     const socket = new SockJS('http://localhost:8080/ws-crm');
     const stompClient = new Client({
       webSocketFactory: () => socket,
@@ -89,13 +105,11 @@ export default function Chat() {
         
         stompClient.subscribe(`/topic/chat/${activeLead.id}`, (message) => {
           const newMsg: ConversationLog = JSON.parse(message.body);
-          
           setMessages((prevMessages) => [...prevMessages, newMsg]);
         });
       },
       onStompError: (frame) => {
         console.error('Broker reported error: ' + frame.headers['message']);
-        console.error('Additional details: ' + frame.body);
       },
     });
 
@@ -114,7 +128,7 @@ export default function Chat() {
     if (!newMessage.trim() || !activeLead) return;
 
     const tempMessage = newMessage;
-    setNewMessage(''); // Clear input instantly for snappy UI
+    setNewMessage(''); 
 
     try {
       const token = localStorage.getItem('accessToken');
@@ -126,10 +140,77 @@ export default function Chat() {
         },
         body: JSON.stringify({ message: tempMessage })
       });
-      // The polling interval will pick up the new message shortly, 
-      // or we could manually append it to the `messages` array here for instant feedback.
     } catch (error) {
       console.error("Failed to send message", error);
+    }
+  };
+
+  // 6. Handle Leaving the Chat 
+  const handleLeaveChat = async () => {
+    if (!activeLead) return;
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`http://localhost:8080/api/v1/leads/${activeLead.id}/leave`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setLeads(prev => prev.filter(l => l.id !== activeLead.id));
+        setActiveLead(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Failed to leave chat", error);
+    }
+  };
+
+  // 7. Handle Closing the Lead 
+  const handleCloseLead = async (status: 'WON' | 'LOST') => {
+    if (!activeLead) return;
+
+    let contractValue = null;
+    if (status === 'WON') {
+        const val = window.prompt("Enter contract value (e.g., 2000):");
+        if (val) contractValue = parseFloat(val);
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`http://localhost:8080/api/v1/leads/${activeLead.id}/close`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status, contractValue })
+      });
+
+      if (response.ok) {
+        setLeads(prev => prev.filter(l => l.id !== activeLead.id));
+        setActiveLead(null);
+        setMessages([]);
+      }
+    } catch (error) {
+      console.error("Failed to close lead", error);
+    }
+  };
+
+  // 🚀 NEW: Handle Closing a Support Ticket
+  const handleCloseTicket = async (ticketId: number) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`http://localhost:8080/api/v1/tickets/${ticketId}/close`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        // Remove the closed ticket from the sidebar instantly
+        setActiveTickets(prev => prev.filter(t => t.id !== ticketId));
+      }
+    } catch (error) {
+      console.error("Failed to close ticket", error);
     }
   };
 
@@ -141,9 +222,40 @@ export default function Chat() {
         <div className="p-4 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-xl font-semibold text-crm-darkest">Inbox</h2>
         </div>
-        <div className="flex p-2 space-x-1 border-b border-gray-100 bg-gray-50">
-          <button className="flex-1 py-1.5 bg-white shadow-sm rounded-md text-sm font-medium text-crm-darkest">Needs Attention</button>
+        
+        {/* 🚀 UPDATED: Support Tickets Sidebar using activeTickets state */}
+        <div className="flex flex-col p-2 border-b border-gray-100 bg-red-50/30">
+          <h3 className="text-xs font-bold text-red-600 mb-2 px-2 uppercase tracking-wider">Needs Attention</h3>
+          
+          {activeTickets.length === 0 ? (
+             <div className="text-xs text-gray-500 px-2 pb-2">No active support tickets.</div>
+          ) : (
+            activeTickets.map(ticket => {
+              // Try to find the customer's name from our leads array
+              const matchingLead = leads.find(l => l.id === ticket.leadId);
+              
+              return (
+                <div key={ticket.id} className="bg-white p-3 rounded-lg shadow-sm border border-red-100 mb-2 text-sm flex justify-between items-center">
+                  <div className="overflow-hidden pr-2">
+                    <span className="font-semibold text-gray-800 truncate block">
+                      {matchingLead?.customerName || `Lead #${ticket.leadId}`}
+                    </span>
+                    <p className="text-xs text-gray-500 mt-1 truncate" title={ticket.issueDescription}>
+                      {ticket.issueDescription}
+                    </p>
+                  </div>
+                  <button 
+                     onClick={() => handleCloseTicket(ticket.id)}
+                     className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 transition whitespace-nowrap"
+                  >
+                    Close
+                  </button>
+                </div>
+              );
+            })
+          )}
         </div>
+
         <div className="flex-1 overflow-y-auto">
           {isLoadingLeads ? (
             <div className="p-4 text-center text-sm text-gray-400">Loading conversations...</div>
@@ -197,7 +309,13 @@ export default function Chat() {
             </div>
 
             {/* Input Area */}
-            <div className="p-4 bg-white border-t border-gray-100">
+            <div className="p-4 bg-white border-t border-gray-100 flex flex-col space-y-3">
+              <div className="flex justify-between items-center px-1">
+                 <span className="text-xs text-gray-400">Currently assigned to you.</span>
+                 <button onClick={handleLeaveChat} className="text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors">
+                   Leave Conversation
+                 </button>
+              </div>
               <form onSubmit={handleSendMessage} className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
                 <input 
                   type="text" 
@@ -211,6 +329,7 @@ export default function Chat() {
                 </button>
               </form>
             </div>
+            
           </>
         ) : (
           <div className="flex-1 flex items-center justify-center text-gray-400">
@@ -241,7 +360,23 @@ export default function Chat() {
 
             <div className="border-t border-gray-100 pt-6">
               <h4 className="text-sm font-semibold text-crm-darkest mb-4">Pipeline Status</h4>
-              <div className="space-y-3">
+              
+              {/* Action Buttons */}
+              <div className="space-y-2 mt-6 border-t border-gray-100 pt-6">
+                <button 
+                  onClick={() => handleCloseLead('WON')}
+                  className="w-full py-2 bg-crm-darkest text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
+                >
+                  Mark as Won
+                </button>
+                <button 
+                  onClick={() => handleCloseLead('LOST')}
+                  className="w-full py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Mark as Lost
+                </button>
+              </div>
+              <div className="space-y-3 mt-6">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Status</span>
                   <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium border border-green-200">
