@@ -55,4 +55,5 @@ public class Lead {
     public void setBotMode(boolean botMode) { this.botMode = botMode; }
     public Double getContractValue() { return contractValue; }
     public void setContractValue(Double contractValue) { this.contractValue = contractValue; }
+    public ZonedDateTime getCreatedAt() { return createdAt; }
 }

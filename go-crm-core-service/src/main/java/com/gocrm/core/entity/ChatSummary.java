@@ -15,7 +15,7 @@ public class ChatSummary {
     @Column(name = "lead_id", nullable = false, unique = true) // One summary per lead handover
     private Long leadId;
 
-    @Column(name = "summary_text", columnDefinition = "TEXT", nullable = false)
+    @Column(name = "summary", columnDefinition = "TEXT", nullable = false)
     private String summaryText;
 
     @CreationTimestamp

@@ -8,6 +8,7 @@ import java.util.List;
 
 @Repository
 public interface SupportTicketRepository extends JpaRepository<SupportTicket, Long> {
-    // Used to populate the "Needs Attention" sidebar for the specific company
+    
     List<SupportTicket> findByCompanyIdAndTicketStatusOrderByCreatedAtDesc(Long companyId, String ticketStatus);
+    List<SupportTicket> findByCompanyIdOrderByCreatedAtDesc(Long companyId);
 }

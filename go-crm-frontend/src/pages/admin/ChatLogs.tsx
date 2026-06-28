@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-// Define the interface based on your backend Lead entity
 interface Lead {
   id: number;
   customerName: string | null;
@@ -8,14 +7,17 @@ interface Lead {
   pipelineStatus: string;
   botMode: boolean;
   createdAt: string;
+  aiSummary?: string; 
 }
 
 export default function ChatLogs() {
   const [activeFilter, setActiveFilter] = useState('All Conversations');
+  
+  const [expandedRowId, setExpandedRowId] = useState<number | null>(null); 
+  
   const [logs, setLogs] = useState<Lead[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch real data from your Spring Boot Backend
   useEffect(() => {
     const fetchLogs = async () => {
       try {
@@ -34,11 +36,9 @@ export default function ChatLogs() {
         setIsLoading(false);
       }
     };
-
     fetchLogs();
   }, []);
 
-  // Filter logic based on the sidebar selection
   const filteredLogs = logs.filter(log => {
     if (activeFilter === 'Bot Handled') return log.botMode === true;
     if (activeFilter === 'Rep Handled') return log.botMode === false;
@@ -47,34 +47,6 @@ export default function ChatLogs() {
 
   return (
     <div className="flex h-full w-full p-6 space-x-6">
-      
-      {/* Left Sidebar - History Filters */}
-      <div className="w-64 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
-        <div className="p-6 border-b border-gray-100">
-          <h2 className="text-lg font-bold text-crm-darkest">History</h2>
-        </div>
-        <div className="p-4 space-y-2 flex-1">
-          {[
-            { name: 'All Conversations', count: logs.length, icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
-            { name: 'Bot Handled', count: logs.filter(l => l.botMode).length, icon: 'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
-            { name: 'Rep Handled', count: logs.filter(l => !l.botMode).length, icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
-          ].map(filter => (
-            <button
-              key={filter.name}
-              onClick={() => setActiveFilter(filter.name)}
-              className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeFilter === filter.name ? 'bg-crm-light text-crm-darkest' : 'text-gray-600 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center space-x-3">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={filter.icon}></path></svg>
-                <span>{filter.name}</span>
-              </div>
-              <span className="text-xs text-gray-400">{filter.count}</span>
-            </button>
-          ))}
-        </div>
-      </div>
 
       {/* Main Content - Table Area */}
       <div className="flex-1 bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
@@ -82,7 +54,6 @@ export default function ChatLogs() {
           <h2 className="text-xl font-bold text-crm-darkest">Conversation Logs</h2>
         </div>
 
-        {/* Table */}
         <div className="flex-1 overflow-auto">
           {isLoading ? (
              <div className="p-8 text-center text-gray-500">Loading conversation data...</div>
@@ -94,43 +65,67 @@ export default function ChatLogs() {
                   <th className="px-6 py-4 font-medium">Contact ID</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium">Date Started</th>
+                  <th className="px-6 py-4 font-medium text-right">Details</th> 
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {filteredLogs.map((log) => (
-                  <tr key={log.id} className="hover:bg-gray-50/50 transition-colors group">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="h-8 w-8 rounded-full bg-crm-accent/30 flex items-center justify-center text-crm-darkest font-bold text-xs">
-                          {log.customerName ? log.customerName.charAt(0).toUpperCase() : '#'}
+                  <React.Fragment key={log.id}>
+                    <tr 
+                      className="hover:bg-gray-50/50 transition-colors group cursor-pointer"
+                      onClick={() => setExpandedRowId(expandedRowId === log.id ? null : log.id)}
+                    >
+                      <td className="px-6 py-4">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-8 w-8 rounded-full bg-crm-accent/30 flex items-center justify-center text-crm-darkest font-bold text-xs">
+                            {log.customerName ? log.customerName.charAt(0).toUpperCase() : '#'}
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            {log.customerName || 'Unknown User'}
+                          </span>
                         </div>
-                        <span className="font-medium text-gray-900">
-                          {log.customerName || 'Unknown User'}
+                      </td>
+                      <td className="px-6 py-4 text-gray-500 truncate max-w-xs">{log.whatsappId}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
+                          log.botMode 
+                            ? 'bg-purple-50 text-purple-700 border border-purple-100' 
+                            : 'bg-green-50 text-green-700 border border-green-100'
+                        }`}>
+                          {log.botMode ? 'Bot Handled' : 'Rep Handled'}
                         </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 truncate max-w-xs">{log.whatsappId}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                        log.botMode 
-                          ? 'bg-purple-50 text-purple-700 border border-purple-100' 
-                          : 'bg-green-50 text-green-700 border border-green-100'
-                      }`}>
-                        {log.botMode ? 'Bot Handled' : 'Rep Handled'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
-                      {new Date(log.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                        {new Date(log.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="px-6 py-4 text-right text-gray-400 group-hover:text-indigo-600 transition-colors">
+                         <svg className={`w-5 h-5 inline-block transform transition-transform ${expandedRowId === log.id ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                      </td>
+                    </tr>
+                    
+                    {expandedRowId === log.id && (
+                      <tr className="bg-indigo-50/30 border-b-2 border-indigo-100">
+                        <td colSpan={5} className="px-8 py-6"> 
+                          <div className="flex items-start space-x-4">
+                            <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-indigo-900 mb-1">AI Conversation Summary</h4>
+                              {log.aiSummary ? (
+                                <p className="text-sm text-indigo-800 whitespace-pre-line leading-relaxed">
+                                  {log.aiSummary}
+                                </p>
+                              ) : (
+                                <p className="text-sm text-gray-500 italic">No summary generated for this lead yet.</p>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))}
-                {filteredLogs.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                      No conversations found for this filter.
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
           )}

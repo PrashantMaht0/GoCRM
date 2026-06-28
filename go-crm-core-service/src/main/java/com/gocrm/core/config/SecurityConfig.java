@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/webhook/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 .requestMatchers("/ws-crm/**").permitAll() 
+                .requestMatchers("/error").permitAll()
                 .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                 .requestMatchers("/api/v1/user/**").hasRole("SALES_REP")
                 .anyRequest().authenticated()

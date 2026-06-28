@@ -12,6 +12,7 @@ import Deals from './pages/sales/Deals';
 import UserSettings from './pages/sales/UserSettings';
 import Reports from './pages/admin/Reports';
 import ChatLogs from './pages/admin/ChatLogs';
+import SupportTicketDashboard from './pages/admin/SupportTicket';
 
 export default function App() {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/admin/*" element={<AdminLayout />}>
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="support-tickets" element={<SupportTicketDashboard />} />
             <Route path="chat-logs" element={<ChatLogs />} />
             <Route path="settings" element={<CompanySettings />} />
             <Route path="create-company" element={<CreateCompany />} />

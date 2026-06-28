@@ -11,6 +11,7 @@ interface Lead {
   pipelineStatus: string;
   botMode: boolean;
   contractValue: number | null;
+  aiSummary?: string;
 }
 
 interface ConversationLog {
@@ -196,18 +197,24 @@ export default function Chat() {
     }
   };
 
-  // 🚀 NEW: Handle Closing a Support Ticket
-  const handleCloseTicket = async (ticketId: number) => {
+  
+  const handleCloseTicket = async (ticketId: number, leadId: number) => {
     try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch(`http://localhost:8080/api/v1/tickets/${ticketId}/close`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { 'Authorization': `Bearer ${token}` 
+      },body: JSON.stringify({})
       });
 
       if (response.ok) {
-        // Remove the closed ticket from the sidebar instantly
         setActiveTickets(prev => prev.filter(t => t.id !== ticketId));
+        setLeads(prev => prev.filter(l => l.id !== leadId));
+        
+        if (activeLead?.id === leadId) {
+            setActiveLead(null);
+            setMessages([]);
+        }
       }
     } catch (error) {
       console.error("Failed to close ticket", error);
@@ -245,7 +252,7 @@ export default function Chat() {
                     </p>
                   </div>
                   <button 
-                     onClick={() => handleCloseTicket(ticket.id)}
+                     onClick={() => handleCloseTicket(ticket.id, ticket.leadId)}
                      className="text-xs bg-red-50 text-red-600 px-2 py-1 rounded hover:bg-red-100 transition whitespace-nowrap"
                   >
                     Close
@@ -389,6 +396,25 @@ export default function Chat() {
                     Disengaged
                   </span>
                 </div>
+              </div>
+
+              {/* 🚀 NEW: AI Context Summary Box */}
+              <div className="border-t border-gray-100 pt-6 mt-6">
+                <div className="flex items-center space-x-2 mb-4">
+                  <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                  </div>
+                  <h4 className="text-sm font-semibold text-indigo-900">AI Context Summary</h4>
+                </div>
+                {activeLead.aiSummary ? (
+                  <p className="text-xs text-indigo-800 whitespace-pre-line leading-relaxed bg-indigo-50/50 p-3 rounded-lg border border-indigo-50">
+                    {activeLead.aiSummary}
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-400 italic p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    No previous context available.
+                  </p>
+                )}
               </div>
             </div>
           </div>

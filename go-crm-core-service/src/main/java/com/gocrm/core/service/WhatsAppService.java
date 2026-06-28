@@ -123,13 +123,12 @@ public class WhatsAppService {
                     lead.setBotMode(false); 
                     
                     // Assign to a human representative automatically
-                    Optional<User> availableRep = userRepository.findFirstByCompanyId(companyId);
+                    Optional<User> availableRep = userRepository.findFirstByCompanyIdAndRole(companyId, Role.SALES_REP);
                     if (availableRep.isPresent()) {
                         lead.setAssignedUserId(availableRep.get().getId());
                     }
                     leadRepository.save(lead);
 
-                    // 🚀 TRIGGER ASYNC WORKER: Let the AI summarize the chat in the background
                     chatSummarizationService.generateAndSaveSummary(lead.getId());
 
                     String transferMsg = "I am transferring you to a human representative. They will review our chat and be with you shortly.";
