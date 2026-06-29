@@ -19,7 +19,6 @@
     <description>Master Parent POM for GoCRM Multi-Tenant SaaS</description>
 
     <modules>
-        <module>whatsapp-ingestion-service</module>
         <module>go-crm-core-service</module>
     </modules>
 

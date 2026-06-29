@@ -1,36 +1,35 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-// TypeScript interfaces matching our Spring Boot DTOs
-interface BotFieldResponse {
-  templateId: number;
-  fieldKey: string;
-  fieldLabel: string;
-  expectedType: string;
-  currentValue: string;
+interface BotSettings {
+  companyId: number;
+  knowledgeBase: string;
+  adminGuardrails: string;
 }
 
-const BotTrainingSettings: React.FC = () => {
+export default function BotTrainingSettings() {
   const { activeCompanyId } = useOutletContext<{ activeCompanyId: string }>();
-  const [fields, setFields] = useState<BotFieldResponse[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [isSaving, setIsSaving] = useState<boolean>(false);
+  
+  const [settings, setSettings] = useState<BotSettings>({ companyId: 0, knowledgeBase: '', adminGuardrails: '' });
+  const [isEditing, setIsEditing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
-  // Fetch the dynamic fields when the component loads
   useEffect(() => {
     if (!activeCompanyId) return;
 
     const fetchSettings = async () => {
+      setIsLoading(true);
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`http://localhost:8080/api/v1/bot-settings/${activeCompanyId}`, {
+        const response = await fetch(`http://localhost:8080/api/v1/bot-settings`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
         if (response.ok) {
           const data = await response.json();
-          setFields(data);
+          setSettings(data);
         }
       } catch (error) {
         console.error('Failed to fetch bot settings', error);
@@ -42,100 +41,122 @@ const BotTrainingSettings: React.FC = () => {
     fetchSettings();
   }, [activeCompanyId]);
 
-  // Update specific field value in state
-  const handleFieldChange = (templateId: number, newValue: string) => {
-    setFields(prevFields => 
-      prevFields.map(field => 
-        field.templateId === templateId ? { ...field, currentValue: newValue } : field
-      )
-    );
-  };
-
-  const handleSave = async (): Promise<void> => {
+  const handleSave = async () => {
     setIsSaving(true);
     setSaveStatus('idle');
 
-    // Transform state into the payload our backend expects
-    const payload = {
-      companyId: parseInt(activeCompanyId, 10),
-      fields: fields.map(f => ({
-        templateId: f.templateId,
-        value: f.currentValue
-      }))
-    };
-
     try {
       const token = localStorage.getItem('accessToken');
-      const response = await fetch('http://localhost:8080/api/v1/bot-settings', {
-        method: 'POST',
+      const response = await fetch(`http://localhost:8080/api/v1/bot-settings`, {
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(settings)
       });
 
       if (response.ok) {
+        const updated = await response.json();
+        setSettings(updated);
         setSaveStatus('success');
+        setIsEditing(false); // Switch back to read-only view
         setTimeout(() => setSaveStatus('idle'), 3000);
       } else {
         setSaveStatus('error');
       }
     } catch (error) {
-      console.error('Failed to save bot config:', error);
       setSaveStatus('error');
     } finally {
       setIsSaving(false);
     }
   };
 
-  if (isLoading) return <div className="p-8 text-gray-500">Loading AI settings...</div>;
+  if (isLoading) {
+    return <div className="p-8 text-center text-gray-400 text-sm">Loading AI Bot configurations...</div>;
+  }
 
   return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-        <h2 className="text-2xl font-bold text-crm-darkest mb-2">AI Bot Training & Guardrails</h2>
-        <p className="text-sm text-gray-500 mb-6">Define how the AI represents your business.</p>
-
-        {fields.length === 0 ? (
-          <p className="text-red-500">No template fields configured in the database.</p>
+    <div className="bg-white rounded-xl border border-gray-200 p-6 shadow-sm mb-8">
+      <div className="flex justify-between items-start mb-6 pb-4 border-b border-gray-100">
+        <div>
+          <h2 className="text-lg font-bold text-gray-900">AI Bot Training & Knowledge</h2>
+          <p className="text-sm text-gray-500">Manage the core intelligence and safety instructions injected into your WhatsApp AI assistant.</p>
+        </div>
+        
+        {!isEditing ? (
+          <button
+            onClick={() => setIsEditing(true)}
+            className="px-4 py-2 bg-crm-dark text-crm-accent hover:bg-crm-darkest rounded-lg text-sm font-medium transition-colors border border-gray-200"
+          >
+            Edit Settings
+          </button>
         ) : (
-          <div className="space-y-6">
-            {fields.map((field) => (
-              <div key={field.templateId} className="space-y-2">
-                <label className="block text-sm font-bold text-gray-700 capitalize">
-                  {field.fieldLabel}
-                </label>
-                <textarea 
-                  className="w-full border border-gray-200 rounded-lg p-3 h-32 focus:ring-2 focus:ring-crm-accent outline-none"
-                  placeholder={`Enter ${field.fieldLabel}...`}
-                  value={field.currentValue || ''}
-                  onChange={(e) => handleFieldChange(field.templateId, e.target.value)}
-                />
-              </div>
-            ))}
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setIsEditing(false)}
+              className="px-4 py-2 bg-crm-dark text-crm-accent hover:bg-crm-darkest rounded-lg text-sm font-medium transition-colors border border-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="px-4 py-2 bg-crm-dark text-crm-accent hover:bg-crm-darkest rounded-lg text-sm font-medium shadow-sm transition-all"
+            >
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
           </div>
         )}
-
-        <div className="mt-8 flex items-center justify-between pt-4 border-t border-gray-100">
-          <div className="h-6">
-            {saveStatus === 'success' && (
-              <span className="text-sm text-green-600 font-medium flex items-center">
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-                AI settings saved securely.
-              </span>
-            )}
-          </div>
-          <button 
-            onClick={handleSave}
-            disabled={isSaving}
-            className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all shadow-sm ${isSaving ? 'bg-gray-400 text-white cursor-not-allowed' : 'bg-crm-darkest text-white hover:bg-crm-dark active:scale-95'}`}
-          >
-            {isSaving ? 'Saving...' : 'Save AI Configuration'}
-          </button>
-        </div>
       </div>
-    
-  );
-};
 
-export default BotTrainingSettings;
+      {/* VIEW MODE */}
+      {!isEditing ? (
+        <div className="space-y-6">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 block mb-2">Company Knowledge Base</span>
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">
+              {settings.knowledgeBase || <span className="italic text-gray-400">No knowledge base configured.</span>}
+            </div>
+          </div>
+
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-gray-400 block mb-2">Admin Guardrails</span>
+            <div className="bg-amber-50/50 p-4 rounded-lg border border-amber-200/60 text-sm text-amber-950 whitespace-pre-wrap leading-relaxed">
+              {settings.adminGuardrails || <span className="italic text-gray-400">No custom guardrails applied.</span>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* EDIT MODE (Reuses Form Inputs) */
+        <div className="space-y-6 animate-fadeIn">
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1">Company Knowledge Base</label>
+            <p className="text-xs text-gray-500 mb-2">All product data, company policies, and facts go here.</p>
+            <textarea
+              rows={6}
+              value={settings.knowledgeBase}
+              onChange={(e) => setSettings({ ...settings, knowledgeBase: e.target.value })}
+              className="w-full p-3.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-crm-darkest outline-none leading-relaxed"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-800 mb-1">Administrative Guardrails</label>
+            <p className="text-xs text-gray-500 mb-2">Rules that restrict the bot from taking unauthorized actions.</p>
+            <textarea
+              rows={4}
+              value={settings.adminGuardrails}
+              onChange={(e) => setSettings({ ...settings, adminGuardrails: e.target.value })}
+              className="w-full p-3.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-crm-darkest outline-none leading-relaxed font-mono text-xs"
+            />
+          </div>
+        </div>
+      )}
+
+      {saveStatus === 'error' && (
+        <p className="text-xs text-red-600 mt-4 font-semibold">❌ Failed to update settings. Please check server logs.</p>
+      )}
+    </div>
+  );
+}

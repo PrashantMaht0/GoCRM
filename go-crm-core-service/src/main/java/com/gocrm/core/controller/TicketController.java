@@ -55,10 +55,8 @@ public class TicketController {
         ticket.setTicketStatus("CLOSED");
         ticketRepository.save(ticket);
         
-        // 🚀 FIX: Turn the AI bot back on and clear the human rep!
         leadRepository.findById(ticket.getLeadId()).ifPresent(lead -> {
             lead.setBotMode(true);
-            lead.setAssignedUserId(null);
             leadRepository.save(lead);
         });
         
@@ -68,12 +66,13 @@ public class TicketController {
     }
 
     @GetMapping
-    public ResponseEntity<List<SupportTicket>> getAllTickets(Principal principal) {
+    public ResponseEntity<List<SupportTicket>> getAllTickets(@RequestParam(required = false) Long companyId,Principal principal) {
         if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         User currentUser = userRepository.findByEmail(principal.getName()).orElseThrow();
         if (currentUser.getCompany() == null) return ResponseEntity.ok(Collections.emptyList());
 
-        return ResponseEntity.ok(ticketRepository.findByCompanyIdOrderByCreatedAtDesc(currentUser.getCompany().getId()));
+        Long targetCompanyId = companyId != null ? companyId : currentUser.getCompany().getId();
+        return ResponseEntity.ok(ticketRepository.findByCompanyIdOrderByCreatedAtDesc(targetCompanyId));
     }
 }

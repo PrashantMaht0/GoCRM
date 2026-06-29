@@ -3,7 +3,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 
-// 1. Define our TypeScript interfaces based on your Spring Boot Entities
 interface Lead {
   id: number;
   customerName: string;
@@ -21,7 +20,6 @@ interface ConversationLog {
   createdAt: string;
 }
 
-// 🚀 NEW: Define the Support Ticket Interface
 interface SupportTicket {
   id: number;
   leadId: number;
@@ -33,39 +31,44 @@ interface SupportTicket {
 export default function Chat() {
   const { user } = useAuth();
   
-  // 2. State Management
   const [leads, setLeads] = useState<Lead[]>([]);
   const [activeLead, setActiveLead] = useState<Lead | null>(null);
   const [messages, setMessages] = useState<ConversationLog[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoadingLeads, setIsLoadingLeads] = useState(true);
-  
-  // 🚀 NEW: State for Support Tickets
   const [activeTickets, setActiveTickets] = useState<SupportTicket[]>([]);
 
-  // 3. Fetch Leads and Tickets when the component loads
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const token = localStorage.getItem('accessToken');
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        // Fetch Leads
-        const leadsRes = await fetch(`http://localhost:8080/api/v1/leads`, { headers });
-        if (leadsRes.ok) {
-          const data = await leadsRes.json();
-          const humanLeads = data.filter((lead: Lead) => !lead.botMode);
-          setLeads(humanLeads);
-          if (humanLeads.length > 0) setActiveLead(humanLeads[0]);
-        }
+        // 🚀 Fetch Leads and Tickets simultaneously
+        const [leadsRes, ticketsRes] = await Promise.all([
+          fetch(`http://localhost:8080/api/v1/leads`, { headers }),
+          fetch(`http://localhost:8080/api/v1/tickets/active`, { headers })
+        ]);
 
-        // 🚀 NEW: Fetch Active Tickets
-        const ticketsRes = await fetch(`http://localhost:8080/api/v1/tickets/active`, { headers });
-        if (ticketsRes.ok) {
+        if (leadsRes.ok && ticketsRes.ok) {
+          const leadsData = await leadsRes.json();
           const ticketsData = await ticketsRes.json();
-          setActiveTickets(ticketsData);
-        }
 
+          setActiveTickets(ticketsData);
+
+          // Create a Set of lead IDs that have active tickets for O(1) lookup
+          const activeTicketLeadIds = new Set(ticketsData.map((t: SupportTicket) => t.leadId));
+
+          // 🚀 THE FILTER: Apply your exact filtration logic
+          const inboxLeads = leadsData.filter((lead: Lead) => {
+            if (lead.botMode) return false; // Ignore AI-handled leads
+            if (activeTicketLeadIds.has(lead.id)) return true; // ALWAYS show if they have an active ticket
+            return lead.pipelineStatus !== 'WON' && lead.pipelineStatus !== 'LOST'; // Hide closed leads
+          });
+
+          setLeads(inboxLeads);
+          if (inboxLeads.length > 0) setActiveLead(inboxLeads[0]);
+        }
       } catch (error) {
         console.error("Failed to fetch dashboard data", error);
       } finally {
@@ -75,7 +78,6 @@ export default function Chat() {
     fetchDashboardData();
   }, []);
 
-  // 4. Fetch Messages and Establish WebSocket Connection
   useEffect(() => {
     if (!activeLead) return;
 
@@ -102,8 +104,6 @@ export default function Chat() {
       webSocketFactory: () => socket,
       reconnectDelay: 5000,
       onConnect: () => {
-        console.log('Connected to WebSocket for Lead:', activeLead.id);
-        
         stompClient.subscribe(`/topic/chat/${activeLead.id}`, (message) => {
           const newMsg: ConversationLog = JSON.parse(message.body);
           setMessages((prevMessages) => [...prevMessages, newMsg]);
@@ -117,13 +117,10 @@ export default function Chat() {
     stompClient.activate();
 
     return () => {
-      console.log('Disconnecting WebSocket for Lead:', activeLead.id);
       stompClient.deactivate();
     };
-    
   }, [activeLead]);
 
-  // 5. Handle Sending a Manual Message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || !activeLead) return;
@@ -146,74 +143,28 @@ export default function Chat() {
     }
   };
 
-  // 6. Handle Leaving the Chat 
-  const handleLeaveChat = async () => {
-    if (!activeLead) return;
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8080/api/v1/leads/${activeLead.id}/leave`, {
-        method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        setLeads(prev => prev.filter(l => l.id !== activeLead.id));
-        setActiveLead(null);
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error("Failed to leave chat", error);
-    }
-  };
-
-  // 7. Handle Closing the Lead 
-  const handleCloseLead = async (status: 'WON' | 'LOST') => {
-    if (!activeLead) return;
-
-    let contractValue = null;
-    if (status === 'WON') {
-        const val = window.prompt("Enter contract value (e.g., 2000):");
-        if (val) contractValue = parseFloat(val);
-    }
-
-    try {
-      const token = localStorage.getItem('accessToken');
-      const response = await fetch(`http://localhost:8080/api/v1/leads/${activeLead.id}/close`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status, contractValue })
-      });
-
-      if (response.ok) {
-        setLeads(prev => prev.filter(l => l.id !== activeLead.id));
-        setActiveLead(null);
-        setMessages([]);
-      }
-    } catch (error) {
-      console.error("Failed to close lead", error);
-    }
-  };
-
-  
   const handleCloseTicket = async (ticketId: number, leadId: number) => {
     try {
       const token = localStorage.getItem('accessToken');
       const response = await fetch(`http://localhost:8080/api/v1/tickets/${ticketId}/close`, {
         method: 'PUT',
-        headers: { 'Authorization': `Bearer ${token}` 
-      },body: JSON.stringify({})
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
       });
 
       if (response.ok) {
         setActiveTickets(prev => prev.filter(t => t.id !== ticketId));
-        setLeads(prev => prev.filter(l => l.id !== leadId));
         
-        if (activeLead?.id === leadId) {
-            setActiveLead(null);
-            setMessages([]);
+        // Find the lead to check its pipeline status
+        const leadToCheck = leads.find(l => l.id === leadId);
+        
+        // If the lead is WON/LOST and the ticket closes, remove them from the inbox
+        if (leadToCheck && (leadToCheck.pipelineStatus === 'WON' || leadToCheck.pipelineStatus === 'LOST')) {
+           setLeads(prev => prev.filter(l => l.id !== leadId));
+           if (activeLead?.id === leadId) {
+              setActiveLead(null);
+              setMessages([]);
+           }
         }
       }
     } catch (error) {
@@ -230,7 +181,6 @@ export default function Chat() {
           <h2 className="text-xl font-semibold text-crm-darkest">Inbox</h2>
         </div>
         
-        {/* 🚀 UPDATED: Support Tickets Sidebar using activeTickets state */}
         <div className="flex flex-col p-2 border-b border-gray-100 bg-red-50/30">
           <h3 className="text-xs font-bold text-red-600 mb-2 px-2 uppercase tracking-wider">Needs Attention</h3>
           
@@ -238,7 +188,6 @@ export default function Chat() {
              <div className="text-xs text-gray-500 px-2 pb-2">No active support tickets.</div>
           ) : (
             activeTickets.map(ticket => {
-              // Try to find the customer's name from our leads array
               const matchingLead = leads.find(l => l.id === ticket.leadId);
               
               return (
@@ -281,7 +230,7 @@ export default function Chat() {
                   </h3>
                   <span className="text-xs text-gray-400">Active</span>
                 </div>
-                <p className="text-xs text-gray-500 truncate">{lead.pipelineStatus}</p>
+                <p className="text-xs text-gray-500 truncate">{lead.pipelineStatus.replace('_', ' ')}</p>
               </div>
             ))
           )}
@@ -292,13 +241,11 @@ export default function Chat() {
       <div className="flex-1 flex flex-col bg-gray-50/30">
         {activeLead ? (
           <>
-            {/* Chat Header */}
             <div className="h-16 px-6 border-b border-gray-100 flex items-center justify-between bg-white">
               <h2 className="text-lg font-semibold text-crm-darkest">{activeLead.customerName || 'Unknown Customer'}</h2>
               <span className="text-xs font-mono text-gray-400">{activeLead.whatsappId}</span>
             </div>
             
-            {/* Chat Messages */}
             <div className="flex-1 p-6 overflow-y-auto space-y-6 flex flex-col">
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex items-start max-w-lg ${msg.direction === 'OUTBOUND' ? 'self-end justify-end' : 'self-start'}`}>
@@ -315,14 +262,7 @@ export default function Chat() {
               ))}
             </div>
 
-            {/* Input Area */}
             <div className="p-4 bg-white border-t border-gray-100 flex flex-col space-y-3">
-              <div className="flex justify-between items-center px-1">
-                 <span className="text-xs text-gray-400">Currently assigned to you.</span>
-                 <button onClick={handleLeaveChat} className="text-xs font-medium text-amber-600 hover:text-amber-700 transition-colors">
-                   Leave Conversation
-                 </button>
-              </div>
               <form onSubmit={handleSendMessage} className="flex items-center bg-gray-50 border border-gray-200 rounded-xl px-4 py-2">
                 <input 
                   type="text" 
@@ -368,26 +308,11 @@ export default function Chat() {
             <div className="border-t border-gray-100 pt-6">
               <h4 className="text-sm font-semibold text-crm-darkest mb-4">Pipeline Status</h4>
               
-              {/* Action Buttons */}
-              <div className="space-y-2 mt-6 border-t border-gray-100 pt-6">
-                <button 
-                  onClick={() => handleCloseLead('WON')}
-                  className="w-full py-2 bg-crm-darkest text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors"
-                >
-                  Mark as Won
-                </button>
-                <button 
-                  onClick={() => handleCloseLead('LOST')}
-                  className="w-full py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Mark as Lost
-                </button>
-              </div>
-              <div className="space-y-3 mt-6">
+              <div className="space-y-3 mt-4">
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">Status</span>
                   <span className="px-2 py-1 bg-green-50 text-green-700 rounded text-xs font-medium border border-green-200">
-                    {activeLead.pipelineStatus}
+                    {activeLead.pipelineStatus.replace('_', ' ')}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
@@ -398,7 +323,6 @@ export default function Chat() {
                 </div>
               </div>
 
-              {/* 🚀 NEW: AI Context Summary Box */}
               <div className="border-t border-gray-100 pt-6 mt-6">
                 <div className="flex items-center space-x-2 mb-4">
                   <div className="p-1.5 bg-indigo-100 text-indigo-600 rounded-lg">

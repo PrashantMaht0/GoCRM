@@ -130,18 +130,27 @@ export default function AdminLayout() {
         </div>
 
         {/* User Profile Area */}
-        <div className="p-4 border-t border-crm-dark flex justify-between items-center">
+        <div className="p-4 border-t border-crm-dark flex flex-col space-y-4">
+          {/* Profile Info */}
           <div className="flex items-center space-x-3 px-2">
-            <div className="h-9 w-9 rounded-full bg-crm-light flex items-center justify-center text-crm-darkest font-bold">
+            <div className="h-9 w-9 rounded-full bg-crm-light flex items-center justify-center text-crm-darkest font-bold shrink-0">
               {user?.email?.charAt(0).toUpperCase()}
             </div>
             <div className="overflow-hidden">
-              <p className="text-sm font-medium text-crm-white truncate">{user?.fullName || 'Admin'}</p>
-              <p className="text-xs text-crm-brown">{user?.email}</p>
+              <p className="text-sm font-medium text-crm-white truncate">{user?.email}</p>
+              <p className="text-xs text-crm-brown truncate">{user?.fullName}</p>
             </div>
           </div>
-          <button onClick={logout} title="Logout" className="text-crm-brown hover:text-red-400 transition-colors">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+          
+          {/* Logout Button */}
+          <button 
+            onClick={logout} 
+            className="flex items-center justify-center w-full space-x-2 px-3 py-2 bg-crm-dark/30 hover:bg-red-500/10 text-crm-brown hover:text-red-400 rounded-lg transition-colors text-sm font-medium border border-transparent hover:border-red-500/20"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+            </svg>
+            <span>Logout</span>
           </button>
         </div>
       </aside>

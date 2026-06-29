@@ -1,162 +1,118 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
-const deals = [
-  { id: 1, company: 'Intercom', title: 'Customer success platform integration', priority: 'High', date: '18 Jan', value: '$78,000', stage: 'Discovery' },
-  { id: 2, company: 'Datadog', title: 'Infrastructure monitoring setup', priority: 'Medium', date: '19 Jan', value: '$230,000', stage: 'Discovery' },
-  { id: 3, company: 'Vercel', title: 'Next-gen frontend deployment', priority: 'High', date: '15 Jan', value: '$82,500', stage: 'Proposal Sent' },
-];
+interface Lead {
+  id: number;
+  customerName: string;
+  pipelineStatus: string;
+  contractValue: number | null;
+}
+
+const STAGES = ['NEW', 'DISCOVERY', 'PROPOSAL_SENT', 'NEGOTIATION', 'WON', 'LOST'];
 
 export default function Deals() {
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchLeads = async () => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      const response = await fetch(`http://localhost:8080/api/v1/leads`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setLeads(data.filter((l: Lead) => STAGES.includes(l.pipelineStatus)));
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchLeads(); }, []);
+
+  // Compute Generalized Summary Metrics
+  const metrics = {
+    total: leads.length,
+    new: leads.filter(l => l.pipelineStatus === 'NEW').length,
+    discovery: leads.filter(l => l.pipelineStatus === 'DISCOVERY').length,
+    proposal: leads.filter(l => l.pipelineStatus === 'PROPOSAL_SENT').length,
+    negotiation: leads.filter(l => l.pipelineStatus === 'NEGOTIATION').length,
+    won: leads.filter(l => l.pipelineStatus === 'WON').length,
+  };
+
+  if (isLoading) return <div className="p-8 text-crm-brown">Loading Pipeline...</div>;
+
   return (
-    <div className="p-8 h-full flex flex-col">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-2xl font-semibold text-crm-darkest">Deals</h1>
-        <div className="flex space-x-3">
-          <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Sort</button>
-          <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50">Filter</button>
-        </div>
+    <div className="p-8 h-full flex flex-col bg-gray-50/50 overflow-hidden">
+      
+      {/* Header */}
+      <div className="mb-6 flex-shrink-0">
+        <h1 className="text-2xl font-bold text-crm-darkest">Deals Pipeline</h1>
+        <p className="text-sm text-crm-brown mt-1">Visualize your active deals and sales funnel.</p>
       </div>
 
-      <div className="flex-1 flex space-x-6 overflow-x-auto pb-4">
-        {/* Column 1 */}
-        <div className="w-max flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-crm-darkest">Discovery</h3>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">6</span>
-            </div>
-            <button className="text-gray-400 hover:text-crm-darkest">+</button>
+      {/* Generalized Summary Tiles - Responsive Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8 flex-shrink-0">
+        {[
+          { label: 'Total Leads', count: metrics.total, color: 'text-crm-darkest', bg: 'bg-white' },
+          { label: 'New', count: metrics.new, color: 'text-blue-600', bg: 'bg-blue-50/50' },
+          { label: 'In Discovery', count: metrics.discovery, color: 'text-amber-600', bg: 'bg-amber-50/50' },
+          { label: 'Proposals Sent', count: metrics.proposal, color: 'text-purple-600', bg: 'bg-purple-50/50' },
+          { label: 'In Negotiation', count: metrics.negotiation, color: 'text-purple-600', bg: 'bg-purple-50/50' },
+          { label: 'Won Deals', count: metrics.won, color: 'text-green-600', bg: 'bg-green-50/50' },
+        ].map((stat, idx) => (
+          <div key={idx} className={`p-5 rounded-xl border border-gray-200 shadow-sm ${stat.bg}`}>
+            <span className="block text-xs font-bold uppercase tracking-wider text-crm-brown mb-1">{stat.label}</span>
+            <span className={`text-2xl font-extrabold ${stat.color}`}>{stat.count}</span>
           </div>
-          
-          <div className="space-y-4 overflow-y-auto flex-1">
-            {deals.filter(d => d.stage === 'Discovery').map(deal => (
-              <div key={deal.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-5 h-5 bg-blue-100 rounded flex items-center justify-center text-[10px] font-bold text-blue-600">{deal.company.charAt(0)}</div>
-                  <span className="text-xs font-semibold text-gray-600">{deal.company}</span>
-                </div>
-                <h4 className="text-sm font-medium text-crm-darkest mb-4">{deal.title}</h4>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className={`px-2 py-1 rounded-md font-medium ${deal.priority === 'High' ? 'bg-red-50 text-red-600' : 'bg-orange-50 text-orange-600'}`}>{deal.priority}</span>
-                  <span className="text-gray-500 flex items-center"><svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>{deal.date}</span>
-                  <span className="font-semibold text-gray-700 ml-auto">{deal.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
+      </div>
 
-        {/* Column 2 */}
-        <div className="w-max flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-crm-darkest">Proposal Sent</h3>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">5</span>
-            </div>
-            <button className="text-gray-400 hover:text-crm-darkest">+</button>
-          </div>
-          
-          <div className="space-y-4 overflow-y-auto flex-1">
-             {deals.filter(d => d.stage === 'Proposal Sent').map(deal => (
-              <div key={deal.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                {/* Same card structure as above */}
-                 <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-5 h-5 bg-black rounded flex items-center justify-center text-[10px] font-bold text-white">{deal.company.charAt(0)}</div>
-                  <span className="text-xs font-semibold text-gray-600">{deal.company}</span>
+      {/* Kanban Board Outer Container - 🚀 FIX: min-w-0 and min-h-0 enforce boundaries */}
+      <div className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar">
+        {/* Kanban Board Inner Container - w-max allows the content to expand beyond the viewport naturally */}
+        <div className="flex h-full gap-6 pb-4 w-max pr-8 items-stretch">
+          {STAGES.map(stage => {
+            const stageLeads = leads.filter(l => l.pipelineStatus === stage);
+            const stageTotal = stageLeads.reduce((sum, l) => sum + (l.contractValue || 0), 0);
+
+            return (
+              <div key={stage} className="w-80 flex-shrink-0 flex flex-col bg-gray-100/60 rounded-xl p-4 border border-gray-200 h-full">
+                
+                {/* Column Header */}
+                <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 flex-shrink-0">
+                  <h3 className="font-semibold text-crm-darkest capitalize flex items-center">
+                    {stage.replace('_', ' ').toLowerCase()}
+                    <span className="ml-2 text-xs bg-crm-light text-crm-darkest px-2 py-0.5 rounded-full font-bold">
+                      {stageLeads.length}
+                    </span>
+                  </h3>
+                  <span className="text-xs font-bold text-crm-brown">${stageTotal.toLocaleString()}</span>
                 </div>
-                <h4 className="text-sm font-medium text-crm-darkest mb-4">{deal.title}</h4>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className={`px-2 py-1 rounded-md font-medium bg-red-50 text-red-600`}>{deal.priority}</span>
-                  <span className="text-gray-500">{deal.date}</span>
-                  <span className="font-semibold text-gray-700 ml-auto">{deal.value}</span>
+
+                {/* Column Cards - Vertical Scroll Enabled */}
+                <div className="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar min-h-0">
+                  {stageLeads.map(lead => (
+                    <div key={lead.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                      <h4 className="font-bold text-crm-darkest text-sm mb-1 truncate">{lead.customerName || 'Unknown Deal'}</h4>
+                      <p className="text-xs text-crm-brown font-medium">
+                        Est. Value: <span className="text-green-700">${(lead.contractValue || 0).toLocaleString()}</span>
+                      </p>
+                    </div>
+                  ))}
+                  
+                  {stageLeads.length === 0 && (
+                    <div className="text-center p-4 border-2 border-dashed border-gray-200 rounded-lg text-xs text-crm-brown/60 mt-2">
+                      No deals in this stage
+                    </div>
+                  )}
                 </div>
+
               </div>
-            ))}
-          </div>  
-        </div>
-        {/* Column 2 */}
-        <div className="w-max flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-crm-darkest">Negotiation</h3>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">5</span>
-            </div>
-            <button className="text-gray-400 hover:text-crm-darkest">+</button>
-          </div>
-          
-          <div className="space-y-4 overflow-y-auto flex-1">
-             {deals.filter(d => d.stage === 'Proposal Sent').map(deal => (
-              <div key={deal.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                {/* Same card structure as above */}
-                 <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-5 h-5 bg-black rounded flex items-center justify-center text-[10px] font-bold text-white">{deal.company.charAt(0)}</div>
-                  <span className="text-xs font-semibold text-gray-600">{deal.company}</span>
-                </div>
-                <h4 className="text-sm font-medium text-crm-darkest mb-4">{deal.title}</h4>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className={`px-2 py-1 rounded-md font-medium bg-red-50 text-red-600`}>{deal.priority}</span>
-                  <span className="text-gray-500">{deal.date}</span>
-                  <span className="font-semibold text-gray-700 ml-auto">{deal.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>  
-        </div>
-        {/* Column 2 */}
-        <div className="w-max flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-crm-darkest">Won</h3>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">5</span>
-            </div>
-            <button className="text-gray-400 hover:text-crm-darkest">+</button>
-          </div>
-          
-          <div className="space-y-4 overflow-y-auto flex-1">
-             {deals.filter(d => d.stage === 'Proposal Sent').map(deal => (
-              <div key={deal.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                {/* Same card structure as above */}
-                 <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-5 h-5 bg-black rounded flex items-center justify-center text-[10px] font-bold text-white">{deal.company.charAt(0)}</div>
-                  <span className="text-xs font-semibold text-gray-600">{deal.company}</span>
-                </div>
-                <h4 className="text-sm font-medium text-crm-darkest mb-4">{deal.title}</h4>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className={`px-2 py-1 rounded-md font-medium bg-red-50 text-red-600`}>{deal.priority}</span>
-                  <span className="text-gray-500">{deal.date}</span>
-                  <span className="font-semibold text-gray-700 ml-auto">{deal.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>  
-        </div>
-        {/* Column 2 */}
-        <div className="w-max flex-shrink-0 flex flex-col">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h3 className="font-medium text-crm-darkest">Lost</h3>
-              <span className="text-xs bg-gray-200 text-gray-600 px-2 py-0.5 rounded-full">5</span>
-            </div>
-            <button className="text-gray-400 hover:text-crm-darkest">+</button>
-          </div>
-          
-          <div className="space-y-4 overflow-y-auto flex-1">
-             {deals.filter(d => d.stage === 'Proposal Sent').map(deal => (
-              <div key={deal.id} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
-                {/* Same card structure as above */}
-                 <div className="flex items-center space-x-2 mb-3">
-                  <div className="w-5 h-5 bg-black rounded flex items-center justify-center text-[10px] font-bold text-white">{deal.company.charAt(0)}</div>
-                  <span className="text-xs font-semibold text-gray-600">{deal.company}</span>
-                </div>
-                <h4 className="text-sm font-medium text-crm-darkest mb-4">{deal.title}</h4>
-                <div className="flex items-center space-x-3 text-xs">
-                  <span className={`px-2 py-1 rounded-md font-medium bg-red-50 text-red-600`}>{deal.priority}</span>
-                  <span className="text-gray-500">{deal.date}</span>
-                  <span className="font-semibold text-gray-700 ml-auto">{deal.value}</span>
-                </div>
-              </div>
-            ))}
-          </div>  
+            );
+          })}
         </div>
       </div>
     </div>

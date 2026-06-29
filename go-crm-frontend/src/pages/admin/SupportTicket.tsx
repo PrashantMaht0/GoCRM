@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 // Define the interface based on your backend SupportTicket entity
 interface SupportTicket {
@@ -12,6 +13,7 @@ interface SupportTicket {
 
 export default function SupportTicketDashboard() {
   const [activeFilter, setActiveFilter] = useState('All Tickets');
+  const { activeCompanyId } = useOutletContext<{ activeCompanyId: string }>();  
   const [tickets, setTickets] = useState<SupportTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -20,7 +22,7 @@ export default function SupportTicketDashboard() {
       try {
         const token = localStorage.getItem('accessToken');
         // Note: We will add this generic /api/v1/tickets GET endpoint to the backend next!
-        const response = await fetch(`http://localhost:8080/api/v1/tickets`, {
+        const response = await fetch(`http://localhost:8080/api/v1/tickets?companyId=${activeCompanyId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -36,7 +38,7 @@ export default function SupportTicketDashboard() {
     };
 
     fetchTickets();
-  }, []);
+  }, [activeCompanyId]);
 
   const filteredTickets = tickets.filter(ticket => {
     if (activeFilter === 'Open') return ticket.ticketStatus === 'OPEN';

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useOutletContext } from 'react-router-dom';
 
 interface Lead {
   id: number;
@@ -12,7 +13,7 @@ interface Lead {
 
 export default function ChatLogs() {
   const [activeFilter, setActiveFilter] = useState('All Conversations');
-  
+  const { activeCompanyId } = useOutletContext<{ activeCompanyId: string }>();
   const [expandedRowId, setExpandedRowId] = useState<number | null>(null); 
   
   const [logs, setLogs] = useState<Lead[]>([]);
@@ -22,7 +23,7 @@ export default function ChatLogs() {
     const fetchLogs = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        const response = await fetch(`http://localhost:8080/api/v1/leads`, {
+        const response = await fetch(`http://localhost:8080/api/v1/leads?companyId=${activeCompanyId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -37,7 +38,7 @@ export default function ChatLogs() {
       }
     };
     fetchLogs();
-  }, []);
+  }, [activeCompanyId]);
 
   const filteredLogs = logs.filter(log => {
     if (activeFilter === 'Bot Handled') return log.botMode === true;

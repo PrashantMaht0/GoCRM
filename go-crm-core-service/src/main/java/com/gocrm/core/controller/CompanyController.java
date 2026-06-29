@@ -114,8 +114,6 @@ public class CompanyController {
         if (company == null) {
             return ResponseEntity.notFound().build();
         }
-
-        // Security check: Ensure the person requesting this company is actually the owner
         if (!company.getOwnerId().equals(currentUser.getId())) {
             return ResponseEntity.status(403).body(Map.of("error", "Access denied. You do not own this workspace."));
         }

@@ -2,11 +2,13 @@ package com.gocrm.core.controller;
 
 import com.gocrm.core.entity.ChatSummary;
 import com.gocrm.core.entity.Lead;
+import com.gocrm.core.entity.LeadRequirement;
 import com.gocrm.core.entity.User;
 import com.gocrm.core.dto.LeadDTO;
 import com.gocrm.core.repository.ChatSummaryRepository;
 import com.gocrm.core.repository.LeadRepository;
 import com.gocrm.core.repository.UserRepository;
+import com.gocrm.core.repository.LeadRequirementRepository;
 import com.gocrm.core.service.ChatSummarizationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,22 +29,31 @@ public class LeadController {
     private final UserRepository userRepository;
     private final ChatSummarizationService chatSummarizationService;
     private final ChatSummaryRepository chatSummaryRepository;
+    private final LeadRequirementRepository leadRequirementRepository;
 
-    public LeadController(LeadRepository leadRepository, UserRepository userRepository, ChatSummarizationService chatSummarizationService, ChatSummaryRepository chatSummaryRepository) {
+    public LeadController(LeadRepository leadRepository, UserRepository userRepository, ChatSummarizationService chatSummarizationService, ChatSummaryRepository chatSummaryRepository, LeadRequirementRepository leadRequirementRepository) {
         this.leadRepository = leadRepository;
         this.userRepository = userRepository;
         this.chatSummarizationService = chatSummarizationService;
-        this.chatSummaryRepository = chatSummaryRepository; 
+        this.chatSummaryRepository = chatSummaryRepository;
+        this.leadRequirementRepository = leadRequirementRepository; 
     }
 
     @GetMapping
-    public ResponseEntity<List<LeadDTO>> getActiveLeads(Principal principal) {
+    public ResponseEntity<List<LeadDTO>> getActiveLeads(@RequestParam(required = false) Long companyId, Principal principal) {
         if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
 
         User currentUser = userRepository.findByEmail(principal.getName()).orElseThrow();
-        if (currentUser.getCompany() == null) return ResponseEntity.ok(Collections.emptyList()); 
+        
+        Long targetCompanyId;
+        if (currentUser.getRole().toString().equals("ADMIN") && companyId != null) {
+            targetCompanyId = companyId;
+        } else {
+            if (currentUser.getCompany() == null) return ResponseEntity.ok(Collections.emptyList());
+            targetCompanyId = currentUser.getCompany().getId();
+        }
 
-        List<Lead> leads = leadRepository.findByCompanyIdOrderByCreatedAtDesc(currentUser.getCompany().getId());
+        List<Lead> leads = leadRepository.findByCompanyIdOrderByCreatedAtDesc(targetCompanyId);
 
         List<LeadDTO> leadDTOs = leads.stream().map(lead -> {
             String summary = chatSummaryRepository.findByLeadId(lead.getId())
@@ -52,21 +63,6 @@ public class LeadController {
         }).collect(Collectors.toList());
         
         return ResponseEntity.ok(leadDTOs);
-    }
-
-    @PutMapping("/{leadId}/leave")
-    public ResponseEntity<Lead> leaveChat(@PathVariable Long leadId, Principal principal) {
-        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-
-        Lead lead = leadRepository.findById(leadId).orElseThrow();
-        lead.setAssignedUserId(null);
-        lead.setBotMode(true); // Return to bot mode
-        leadRepository.save(lead);
-
-        // TRIGGER 2: Rep left, update the summary with their messages
-        chatSummarizationService.generateAndSaveSummary(leadId);
-        
-        return ResponseEntity.ok(lead);
     }
 
     @PutMapping("/{leadId}/close")
@@ -81,13 +77,59 @@ public class LeadController {
         }
         
         lead.setBotMode(true); 
-        lead.setAssignedUserId(null); 
         leadRepository.save(lead);
-
-        // TRIGGER 3: Deal closed, generate final summary
         chatSummarizationService.generateAndSaveSummary(leadId);
 
         return ResponseEntity.ok(lead);
+    }
+
+    @PostMapping
+    public ResponseEntity<LeadDTO> createManualLead(@RequestBody Map<String, String> payload, Principal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        User currentUser = userRepository.findByEmail(principal.getName()).orElseThrow();
+
+        Lead lead = new Lead();
+        lead.setCompanyId(currentUser.getCompany().getId());
+        lead.setCustomerName(payload.get("customerName"));
+        lead.setWhatsappId(payload.get("whatsappId")); // e.g., +1234567890
+        lead.setPipelineStatus("DISCOVERY"); // Start in the first Kanban stage
+        lead.setBotMode(false); // Human is managing this
+        lead.setAssignedUserId(currentUser.getId()); // Assign to the rep who created it
+        
+        lead = leadRepository.save(lead);
+        return ResponseEntity.ok(new LeadDTO(lead, null));
+    }
+
+    @PutMapping("/{leadId}")
+    public ResponseEntity<LeadDTO> updateLeadDetails(@PathVariable Long leadId, @RequestBody Map<String, Object> payload, Principal principal) {
+        if (principal == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+
+        Lead lead = leadRepository.findById(leadId).orElseThrow();
+        
+        if (payload.containsKey("pipelineStatus")) {
+            String newStatus = (String) payload.get("pipelineStatus");
+            lead.setPipelineStatus(newStatus);
+            
+            if ("WON".equals(newStatus) || "LOST".equals(newStatus)) {
+                lead.setBotMode(true);
+            }
+        }
+        
+        if (payload.containsKey("contractValue")) {
+            lead.setContractValue(Double.valueOf(payload.get("contractValue").toString()));
+        }
+        
+        lead = leadRepository.save(lead);
+
+        if (payload.containsKey("requirements")) {
+            String notes = (String) payload.get("requirements");
+            LeadRequirement req = leadRequirementRepository.findByLeadId(leadId)
+                    .orElse(new LeadRequirement(leadId, "{}"));
+            req.setExtractedData("{\"manual_notes\": \"" + notes.replace("\"", "\\\"") + "\"}");
+            leadRequirementRepository.save(req);
+        }
+
+        return ResponseEntity.ok(new LeadDTO(lead, null)); 
     }
 
 }
