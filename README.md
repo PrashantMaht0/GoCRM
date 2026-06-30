@@ -16,12 +16,12 @@ By using WhatsApp as the main point for getting leads, businesses can automate l
 
 Here is a look at the different parts of the application:
 
-* **Login Page:** ![Insert Login Page Screenshot Here]
-* **Admin Dashboard:** [Insert Admin Dashboard Screenshot Here]
-* **User Dashboard:** [Insert User Dashboard Screenshot Here]
-* **Kanban Board:** [Insert Kanban Board Screenshot Here]
-* **Leads Page:** [Insert Leads Page Screenshot Here]
-* **Chat Page:** [Insert Chat Page Screenshot Here]
+* **Login Page:** ![Login Page Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.40.34.png)
+* **Admin Dashboard:** ![Admin Dashboard Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.41.24.png)
+* **User Dashboard:** ![User Dashboard Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.41.32.png)
+* **Kanban Board:** ![Kanban Board Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.42.36.png)
+* **Leads Page:** ![Leads Page Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.42.42.png)
+* **Chat Page:** ![Chat Page Screenshot Here](https://github.com/PrashantMaht0/GoCRM/blob/main/go-crm-frontend/src/assets/screenshots/Screenshot%202026-06-30%20at%2001.42.26.png)
 
 ## Project Overview and Features
 
@@ -80,7 +80,7 @@ You can run GoCRM locally on your machine using standard package managers or via
 
 1. **Clone the repository:**
  ```bash
-git clone [https://github.com/yourusername/GoCRM.git](https://github.com/yourusername/GoCRM.git)
+git clone https://github.com/PrashantMaht0/GoCRM.git
 cd GoCRM
 ```
 
