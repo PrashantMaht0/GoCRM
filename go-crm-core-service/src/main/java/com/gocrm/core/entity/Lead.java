@@ -1,7 +1,6 @@
 package com.gocrm.core.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import java.time.ZonedDateTime;
 
 import org.hibernate.annotations.CreationTimestamp;
@@ -34,6 +33,9 @@ public class Lead {
     @Column(name = "contract_value")
     private Double contractValue;
 
+    @Column(name = "lifetime_value")
+    private Double lifetimeValue;
+
     @CreationTimestamp
     @Column(name = "created_at",updatable = false)
     private ZonedDateTime createdAt = ZonedDateTime.now();
@@ -55,5 +57,7 @@ public class Lead {
     public void setBotMode(boolean botMode) { this.botMode = botMode; }
     public Double getContractValue() { return contractValue; }
     public void setContractValue(Double contractValue) { this.contractValue = contractValue; }
+    public Double getLifetimeValue() { return lifetimeValue; }
+    public void setLifetimeValue(Double lifetimeValue) { this.lifetimeValue = lifetimeValue; }
     public ZonedDateTime getCreatedAt() { return createdAt; }
 }

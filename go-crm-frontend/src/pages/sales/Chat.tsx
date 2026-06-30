@@ -44,7 +44,6 @@ export default function Chat() {
         const token = localStorage.getItem('accessToken');
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        // 🚀 Fetch Leads and Tickets simultaneously
         const [leadsRes, ticketsRes] = await Promise.all([
           fetch(`http://localhost:8080/api/v1/leads`, { headers }),
           fetch(`http://localhost:8080/api/v1/tickets/active`, { headers })
@@ -56,14 +55,11 @@ export default function Chat() {
 
           setActiveTickets(ticketsData);
 
-          // Create a Set of lead IDs that have active tickets for O(1) lookup
           const activeTicketLeadIds = new Set(ticketsData.map((t: SupportTicket) => t.leadId));
-
-          // 🚀 THE FILTER: Apply your exact filtration logic
           const inboxLeads = leadsData.filter((lead: Lead) => {
-            if (lead.botMode) return false; // Ignore AI-handled leads
-            if (activeTicketLeadIds.has(lead.id)) return true; // ALWAYS show if they have an active ticket
-            return lead.pipelineStatus !== 'WON' && lead.pipelineStatus !== 'LOST'; // Hide closed leads
+            if (activeTicketLeadIds.has(lead.id)) return true; 
+            if (!lead.botMode) return true;
+            return false; 
           });
 
           setLeads(inboxLeads);
@@ -155,10 +151,8 @@ export default function Chat() {
       if (response.ok) {
         setActiveTickets(prev => prev.filter(t => t.id !== ticketId));
         
-        // Find the lead to check its pipeline status
         const leadToCheck = leads.find(l => l.id === leadId);
         
-        // If the lead is WON/LOST and the ticket closes, remove them from the inbox
         if (leadToCheck && (leadToCheck.pipelineStatus === 'WON' || leadToCheck.pipelineStatus === 'LOST')) {
            setLeads(prev => prev.filter(l => l.id !== leadId));
            if (activeLead?.id === leadId) {

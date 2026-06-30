@@ -10,6 +10,7 @@ public class LeadDTO {
     private String pipelineStatus;
     private boolean botMode;
     private Double contractValue;
+    private Double lifetimeValue;
     private ZonedDateTime createdAt;
     private String aiSummary;
 
@@ -20,6 +21,7 @@ public class LeadDTO {
         this.pipelineStatus = lead.getPipelineStatus();
         this.botMode = lead.isBotMode();
         this.contractValue = lead.getContractValue();
+        this.lifetimeValue = lead.getLifetimeValue();
         this.createdAt = lead.getCreatedAt();
         this.aiSummary = aiSummary;
     }
@@ -31,6 +33,7 @@ public class LeadDTO {
     public String getPipelineStatus() { return pipelineStatus; }
     public boolean isBotMode() { return botMode; }
     public Double getContractValue() { return contractValue; }
+    public Double getLifetimeValue() { return lifetimeValue; }
     public ZonedDateTime getCreatedAt() { return createdAt; }
     public String getAiSummary() { return aiSummary; }
 }

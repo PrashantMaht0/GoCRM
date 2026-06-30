@@ -5,6 +5,7 @@ interface Lead {
   customerName: string;
   pipelineStatus: string;
   contractValue: number | null;
+  lifetimeValue: number | null;
 }
 
 const STAGES = ['NEW', 'DISCOVERY', 'PROPOSAL_SENT', 'NEGOTIATION', 'WON', 'LOST'];
@@ -53,7 +54,6 @@ export default function Deals() {
         <p className="text-sm text-crm-brown mt-1">Visualize your active deals and sales funnel.</p>
       </div>
 
-      {/* Generalized Summary Tiles - Responsive Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8 flex-shrink-0">
         {[
           { label: 'Total Leads', count: metrics.total, color: 'text-crm-darkest', bg: 'bg-white' },
@@ -61,7 +61,7 @@ export default function Deals() {
           { label: 'In Discovery', count: metrics.discovery, color: 'text-amber-600', bg: 'bg-amber-50/50' },
           { label: 'Proposals Sent', count: metrics.proposal, color: 'text-purple-600', bg: 'bg-purple-50/50' },
           { label: 'In Negotiation', count: metrics.negotiation, color: 'text-purple-600', bg: 'bg-purple-50/50' },
-          { label: 'Won Deals', count: metrics.won, color: 'text-green-600', bg: 'bg-green-50/50' },
+          { label: 'Total Deals Won', count: metrics.won, color: 'text-green-600', bg: 'bg-green-50/50' },
         ].map((stat, idx) => (
           <div key={idx} className={`p-5 rounded-xl border border-gray-200 shadow-sm ${stat.bg}`}>
             <span className="block text-xs font-bold uppercase tracking-wider text-crm-brown mb-1">{stat.label}</span>
@@ -70,13 +70,16 @@ export default function Deals() {
         ))}
       </div>
 
-      {/* Kanban Board Outer Container - 🚀 FIX: min-w-0 and min-h-0 enforce boundaries */}
       <div className="flex-1 min-w-0 min-h-0 overflow-x-auto overflow-y-hidden custom-scrollbar">
-        {/* Kanban Board Inner Container - w-max allows the content to expand beyond the viewport naturally */}
         <div className="flex h-full gap-6 pb-4 w-max pr-8 items-stretch">
           {STAGES.map(stage => {
             const stageLeads = leads.filter(l => l.pipelineStatus === stage);
-            const stageTotal = stageLeads.reduce((sum, l) => sum + (l.contractValue || 0), 0);
+            
+            const stageTotal = stageLeads.reduce((sum, l) => {
+              if (stage === 'WON') return sum + (l.lifetimeValue || 0);
+              if (stage === 'LOST') return sum; 
+              return sum + (l.contractValue || 0);
+            }, 0);
 
             return (
               <div key={stage} className="w-80 flex-shrink-0 flex flex-col bg-gray-100/60 rounded-xl p-4 border border-gray-200 h-full">
@@ -97,9 +100,25 @@ export default function Deals() {
                   {stageLeads.map(lead => (
                     <div key={lead.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
                       <h4 className="font-bold text-crm-darkest text-sm mb-1 truncate">{lead.customerName || 'Unknown Deal'}</h4>
-                      <p className="text-xs text-crm-brown font-medium">
-                        Est. Value: <span className="text-green-700">${(lead.contractValue || 0).toLocaleString()}</span>
-                      </p>
+                      
+                      {stage === 'WON' && (
+                        <p className="text-xs text-crm-brown font-medium">
+                          Lifetime Value: <span className="text-green-700 font-bold">${(lead.lifetimeValue || 0).toLocaleString()}</span>
+                        </p>
+                      )}
+                      
+                      {stage === 'LOST' && (
+                        <p className="text-xs text-gray-400 font-medium">
+                          Lost Value: <span className="line-through">${(lead.contractValue || 0).toLocaleString()}</span>
+                        </p>
+                      )}
+                      
+                      {stage !== 'WON' && stage !== 'LOST' && (
+                        <p className="text-xs text-crm-brown font-medium">
+                          Est. Value: <span className="text-blue-700 font-bold">${(lead.contractValue || 0).toLocaleString()}</span>
+                        </p>
+                      )}
+
                     </div>
                   ))}
                   

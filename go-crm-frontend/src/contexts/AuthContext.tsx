@@ -44,7 +44,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('accessToken'); 
     localStorage.removeItem('gocrm_user');
     setUser(null);
-  };  
+    
+    window.location.href = '/'; 
+  }; 
 
   const updateUser = (updates: Partial<UserContextType>) => {
     if (user) {

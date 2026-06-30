@@ -1,9 +1,11 @@
 package com.gocrm.core.controller;
 
 import com.gocrm.core.entity.SupportTicket;
+import com.gocrm.core.entity.TicketResolution;
 import com.gocrm.core.entity.User;
-import com.gocrm.core.repository.LeadRepository; // 🚀 ADDED
+import com.gocrm.core.repository.LeadRepository; 
 import com.gocrm.core.repository.SupportTicketRepository;
+import com.gocrm.core.repository.TicketResolutionRepository;
 import com.gocrm.core.repository.UserRepository;
 import com.gocrm.core.service.ChatSummarizationService;
 
@@ -23,16 +25,19 @@ public class TicketController {
     private final SupportTicketRepository ticketRepository;
     private final UserRepository userRepository;
     private final ChatSummarizationService chatSummarizationService;
-    private final LeadRepository leadRepository; 
+    private final LeadRepository leadRepository;
+    private final TicketResolutionRepository ticketResolutionRepository;
 
     public TicketController(SupportTicketRepository ticketRepository, 
                             UserRepository userRepository, 
                             ChatSummarizationService chatSummarizationService,
-                            LeadRepository leadRepository) { 
+                            LeadRepository leadRepository,
+                            TicketResolutionRepository ticketResolutionRepository) { 
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.chatSummarizationService = chatSummarizationService;
         this.leadRepository = leadRepository;
+        this.ticketResolutionRepository = ticketResolutionRepository;
     }
 
     @GetMapping("/active")
@@ -54,6 +59,15 @@ public class TicketController {
 
         ticket.setTicketStatus("CLOSED");
         ticketRepository.save(ticket);
+        
+        // 🚀 THE FIX: Log a permanent history record for the dashboard analytics
+        TicketResolution resolution = new TicketResolution(
+            ticket.getId(),
+            ticket.getCompanyId(),
+            ticket.getAssignedUserId(), // The Sales Rep who closed it
+            ticket.getIssueDescription()
+        );
+        ticketResolutionRepository.save(resolution);
         
         leadRepository.findById(ticket.getLeadId()).ifPresent(lead -> {
             lead.setBotMode(true);

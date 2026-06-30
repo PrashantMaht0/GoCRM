@@ -14,6 +14,7 @@ import Reports from './pages/admin/Reports';
 import ChatLogs from './pages/admin/ChatLogs';
 import SupportTicketDashboard from './pages/admin/SupportTicket';
 import Leads from './pages/sales/Leads';
+import UserDashboard from './pages/sales/UserDashboard';
 
 export default function App() {
   const { user } = useAuth();
@@ -43,7 +44,7 @@ export default function App() {
               <Route path="/join-company" element={<JoinCompany />} />
             ) : (
               <Route path="/user/*" element={<SalesRepLayout />} >
-                <Route path="dashboard" element={<div>Dashboard Placeholder</div>} />
+                <Route path="dashboard" element={<UserDashboard />} />
                 <Route path="inbox" element={<Chat />} />
                 <Route path="deals" element={<Deals />} />
                 <Route path="leads" element={<Leads />} />

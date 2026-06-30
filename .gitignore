@@ -35,5 +35,6 @@ tailwind.config.js
 
 temp.txt
 target/
+application.yml
 
 .env

@@ -8,6 +8,7 @@ interface Lead {
   pipelineStatus: string;
   botMode: boolean;
   contractValue: number | null;
+  lifetimeValue: number | null;
   aiSummary?: string;
 }
 
@@ -157,7 +158,22 @@ export default function Leads() {
                       {lead.pipelineStatus.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 font-medium text-green-700">${(lead.contractValue || 0).toLocaleString()}</td>
+                  <td className="px-6 py-4">
+                    {lead.pipelineStatus === 'WON' ? (
+                      <span className="text-green-700 font-bold" title="Lifetime Value">
+                        ${(lead.lifetimeValue || 0).toLocaleString()}
+                      </span>
+                    ) : lead.pipelineStatus === 'LOST' ? (
+                      <span className="text-gray-400 line-through" title="Lost Value">
+                        ${(lead.contractValue || 0).toLocaleString()}
+                      </span>
+                    ) : (
+                      <span className="text-blue-700 font-medium" title="Estimated Value">
+                        ${(lead.contractValue || 0).toLocaleString()}
+                      </span>
+                    )}
+                  </td>
+
                   <td className="px-6 py-4 text-right">
                     <button 
                       onClick={() => openEditModal(lead)} 
@@ -216,7 +232,17 @@ export default function Leads() {
                 </div>
                 <div>
                   <label className="block text-sm font-semibold text-crm-darkest mb-1">Contract Value ($)</label>
-                  <input type="number" value={editForm.contractValue} onChange={e => setEditForm({...editForm, contractValue: parseFloat(e.target.value)})} className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-crm-accent" />
+                  <input 
+                        type="number" 
+                        value={editForm.contractValue || ''} 
+                        onChange={e => setEditForm({
+                          ...editForm, 
+                          contractValue: e.target.value ? parseFloat(e.target.value) : 0 
+                        })} 
+                        className="w-full p-2.5 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-crm-accent" 
+                        min="0"
+                        step="any"
+                      />
                 </div>
               </div>
               <div>

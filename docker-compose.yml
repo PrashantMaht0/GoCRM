@@ -1,0 +1,33 @@
+
+services:
+  gocrm-backend:
+    build:
+      context: . 
+      dockerfile: go-crm-core-service/Dockerfile
+    container_name: gocrm-backend
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./go-crm-core-service/.env 
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+    networks:
+      - gocrm-network
+    restart: unless-stopped
+
+  gocrm-frontend:
+    build:
+      context: ./go-crm-frontend
+      dockerfile: Dockerfile
+    container_name: gocrm-frontend
+    ports:
+      - "80:80" 
+    depends_on:
+      - gocrm-backend
+    networks:
+      - gocrm-network
+    restart: unless-stopped
+
+networks:
+  gocrm-network:
+    driver: bridge
