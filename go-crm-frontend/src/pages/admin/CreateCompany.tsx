@@ -23,7 +23,6 @@ export default function CreateCompany() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        // Passing the initial AI configuration alongside company creation
         body: JSON.stringify({ 
           name: companyName,
           knowledgeBase: knowledgeBase.trim() || 'No company knowledge provided yet.',

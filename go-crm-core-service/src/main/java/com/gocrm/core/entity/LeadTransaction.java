@@ -12,10 +12,10 @@ public class LeadTransaction {
     private Long id;
     private Long leadId;
     private Long companyId;
-    private Long assignedUserId; // Who won the deal?
+    private Long assignedUserId; 
     private Double amount;
     @CreationTimestamp
-    private ZonedDateTime closedAt; // When was it won?
+    private ZonedDateTime closedAt; 
     
     // ... getters and setters
     public Long getId() { return id; }

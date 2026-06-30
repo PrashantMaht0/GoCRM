@@ -38,7 +38,6 @@ export default function SalesRepLayout() {
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden text-crm-darkest font-sans">
-      {/* 🚀 FIX: Added flex-shrink-0 so the sidebar never gets crushed */}
       <aside className="w-64 flex-shrink-0 bg-crm-darkest text-crm-white flex flex-col justify-between">
         <div>
           <div className="h-16 flex items-center px-6 border-b border-crm-dark">

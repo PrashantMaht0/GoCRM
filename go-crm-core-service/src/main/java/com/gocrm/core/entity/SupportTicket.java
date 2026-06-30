@@ -22,7 +22,7 @@ public class SupportTicket {
     private Long assignedUserId;
 
     @Column(name = "ticket_status", nullable = false)
-    private String ticketStatus; // e.g., "OPEN", "CLOSED"
+    private String ticketStatus; 
 
     @Column(name = "issue_description", columnDefinition = "TEXT", nullable = false)
     private String issueDescription;

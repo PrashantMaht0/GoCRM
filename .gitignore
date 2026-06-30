@@ -12,15 +12,6 @@ node_modules
 dist
 dist-ssr
 *.local
-eslint.config.js
-package.json
-package-lock.json
-tsconfig.app.json
-tsconfig.json
-tsconfig.node.json
-vite.config.ts
-postcss.config.js
-tailwind.config.js
 
 
 .vscode/*

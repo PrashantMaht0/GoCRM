@@ -88,7 +88,6 @@ public class WhatsAppService {
                 Optional<Lead> optionalLead = leadRepository.findByCompanyIdAndWhatsappId(companyId, senderPhone);
                 Lead lead;
 
-                // 1. Create Lead and Assign Sales Rep IMMEDIATELY
                 if (optionalLead.isEmpty()) {
                     lead = new Lead();
                     lead.setCompanyId(companyId);
@@ -118,7 +117,6 @@ public class WhatsAppService {
                 ConversationLog savedLog = logConversation(lead.getId(), null, wamid, "INBOUND", messageText);
                 messagingTemplate.convertAndSend("/topic/chat/" + lead.getId(), savedLog);
                 
-                // 2. Capture Missing Name
                 if (lead.getCustomerName() == null || lead.getCustomerName().trim().isEmpty()) {
                     lead.setCustomerName(messageText.trim());
                     leadRepository.save(lead);
@@ -128,11 +126,9 @@ public class WhatsAppService {
                     return;
                 }
 
-                // 3. Check for Human Handover
                 if (messageText.toLowerCase().contains("@sales_representative")) {
                     lead.setBotMode(false); 
                     
-                    // 🚀 FIX: Only assign if they somehow don't have a rep yet (e.g. legacy data)
                     if (lead.getAssignedUserId() == null) {
                         userRepository.findFirstByCompanyIdAndRole(companyId, Role.SALES_REP)
                                 .ifPresent(rep -> lead.setAssignedUserId(rep.getId()));
@@ -146,11 +142,9 @@ public class WhatsAppService {
                     return;
                 }
 
-                // 4. Check for Support Ticket
                 if (messageText.toLowerCase().contains("@raise_support_ticket")) {
                     lead.setBotMode(false); 
                     
-                    // 🚀 ALREADY CORRECT: Uses existing rep, or finds one safely if null.
                     Long designatedRepId = lead.getAssignedUserId();
                     if (designatedRepId == null) {
                         designatedRepId = userRepository.findFirstByCompanyIdAndRole(companyId, Role.SALES_REP)

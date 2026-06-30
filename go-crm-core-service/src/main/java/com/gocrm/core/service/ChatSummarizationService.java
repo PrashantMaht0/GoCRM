@@ -43,9 +43,6 @@ public class ChatSummarizationService {
                     .map(log -> log.getDirection() + ": " + log.getMessageBody())
                     .collect(Collectors.joining("\n"));
 
-            // ==========================================
-            // TASK A: Generate Human-Readable Summary
-            // ==========================================
             String summarySystemPrompt = "You are a CRM assistant. Read the following conversation between an AI bot and a customer. " +
                                   "Summarize the customer's core needs and context in exactly 2 short bullet points. " +
                                   "Do not include greetings or fluff.\n\nConversation:\n" + formattedChat;
@@ -56,10 +53,7 @@ public class ChatSummarizationService {
             summary.setSummaryText(summaryText);
             chatSummaryRepository.save(summary);
             
-            // ==========================================
-            // TASK B: Generate/Update Structured JSON
-            // ==========================================
-            
+
             
             Optional<LeadRequirement> existingReq = leadRequirementRepository.findByLeadId(leadId);
             String currentJson = existingReq.map(LeadRequirement::getExtractedData).orElse("{}");

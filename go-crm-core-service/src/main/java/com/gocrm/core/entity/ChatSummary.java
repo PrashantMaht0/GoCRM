@@ -12,7 +12,7 @@ public class ChatSummary {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "lead_id", nullable = false, unique = true) // One summary per lead handover
+    @Column(name = "lead_id", nullable = false, unique = true) 
     private Long leadId;
 
     @Column(name = "summary", columnDefinition = "TEXT", nullable = false)

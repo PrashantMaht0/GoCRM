@@ -60,7 +60,6 @@ export default function AdminDashboard() {
         const token = localStorage.getItem('accessToken');
         const headers = { 'Authorization': `Bearer ${token}` };
 
-        // Fetch Company Details & Admin Metrics Simultaneously
         const [companyRes, metricsRes] = await Promise.all([
           fetch(`http://localhost:8080/api/v1/companies/${activeCompanyId}`, { headers }),
           fetch(`http://localhost:8080/api/v1/dashboard/admin?companyId=${activeCompanyId}&month=${selectedMonth}&year=${selectedYear}`, { headers })

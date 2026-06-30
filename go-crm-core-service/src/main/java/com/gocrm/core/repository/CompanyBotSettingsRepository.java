@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CompanyBotSettingsRepository extends JpaRepository<CompanyBotSettings, Long> {
     // Because companyId is the ID, standard findById(companyId) works perfectly!
+    
 }

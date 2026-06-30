@@ -60,7 +60,7 @@ export default function BotTrainingSettings() {
         const updated = await response.json();
         setSettings(updated);
         setSaveStatus('success');
-        setIsEditing(false); // Switch back to read-only view
+        setIsEditing(false); 
         setTimeout(() => setSaveStatus('idle'), 3000);
       } else {
         setSaveStatus('error');
@@ -155,7 +155,7 @@ export default function BotTrainingSettings() {
       )}
 
       {saveStatus === 'error' && (
-        <p className="text-xs text-red-600 mt-4 font-semibold">❌ Failed to update settings. Please check server logs.</p>
+        <p className="text-xs text-red-600 mt-4 font-semibold">Failed to update settings. Please check server logs.</p>
       )}
     </div>
   );

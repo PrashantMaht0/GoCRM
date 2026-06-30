@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useOutletContext } from 'react-router-dom';
 
-// Define the interface based on your backend SupportTicket entity
 interface SupportTicket {
   id: number;
   leadId: number;
@@ -21,7 +20,6 @@ export default function SupportTicketDashboard() {
     const fetchTickets = async () => {
       try {
         const token = localStorage.getItem('accessToken');
-        // Note: We will add this generic /api/v1/tickets GET endpoint to the backend next!
         const response = await fetch(`http://localhost:8080/api/v1/tickets?companyId=${activeCompanyId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });

@@ -42,17 +42,14 @@ public class UserDashboardController {
         Long userId = user.getId();
         Long companyId = user.getCompany().getId();
 
-        // Fallback to the current date if parameters are missing
         ZonedDateTime now = ZonedDateTime.now();
         int targetMonth = (month != null) ? month : now.getMonthValue();
         int targetYear = (year != null) ? year : now.getYear();
 
-        // 1. Total Revenue (All time)
         Double totalRevenue = transactionRepository.findByCompanyId(companyId).stream()
                 .filter(t -> t.getAssignedUserId() != null && t.getAssignedUserId().equals(userId))
                 .mapToDouble(LeadTransaction::getAmount).sum();
 
-        // 2. Revenue & Transactions for the selected month
         ZonedDateTime start = ZonedDateTime.of(targetYear, targetMonth, 1, 0, 0, 0, 0, now.getZone());
         ZonedDateTime end = start.plusMonths(1);
         
@@ -63,33 +60,26 @@ public class UserDashboardController {
 
         Double monthlyRevenue = monthlyTransactions.stream().mapToDouble(LeadTransaction::getAmount).sum();
 
-        // 3. Active Leads
         long activeLeads = leadRepository.findByCompanyIdOrderByCreatedAtDesc(companyId).stream()
                 .filter(l -> l.getAssignedUserId() != null && l.getAssignedUserId().equals(userId))
                 .filter(l -> List.of("NEW", "DISCOVERY", "PROPOSAL_SENT", "NEGOTIATION").contains(l.getPipelineStatus()))
                 .count();
 
-        // 4. New Leads this month
         long newLeadsThisMonth = leadRepository.findByCompanyIdOrderByCreatedAtDesc(companyId).stream()
                 .filter(l -> l.getAssignedUserId() != null && l.getAssignedUserId().equals(userId))
                 .filter(l -> l.getPipelineStatus().equals("NEW"))
                 .filter(l -> l.getCreatedAt().isAfter(start) && l.getCreatedAt().isBefore(end))
                 .count();
 
-        // 5. Total Leads Won
         long totalWon = leadRepository.findByCompanyIdOrderByCreatedAtDesc(companyId).stream()
                 .filter(l -> l.getAssignedUserId() != null && l.getAssignedUserId().equals(userId))
                 .filter(l -> l.getPipelineStatus().equals("WON"))
                 .count();
 
-        // 6. Total Issues Resolved
         long totalResolved = ticketRepository.findByCompanyIdAndTicketStatusOrderByCreatedAtDesc(companyId, "CLOSED").stream()
                 .filter(t -> t.getAssignedUserId() != null && t.getAssignedUserId().equals(userId))
                 .count();
 
-        // =========================================================
-        // 7. CHART DATA AGGREGATION: Grouping Revenue by Day
-        // =========================================================
         Map<Integer, Double> dailyRevenueMap = monthlyTransactions.stream()
                 .collect(Collectors.groupingBy(
                         t -> t.getClosedAt().getDayOfMonth(),
@@ -100,7 +90,7 @@ public class UserDashboardController {
         List<Map<String, Object>> chartData = new ArrayList<>();
         
         double cumulativeRevenue = 0.0;
-        double monthlySalesGoal = 10000.0; // Hardcoded goal for now. Can be moved to DB later.
+        double monthlySalesGoal = 10000.0; 
         double dailyGoalStep = monthlySalesGoal / daysInMonth;
 
         for (int i = 1; i <= daysInMonth; i++) {
@@ -108,7 +98,7 @@ public class UserDashboardController {
             cumulativeRevenue += dailyRev;
             
             chartData.add(Map.of(
-                    "day", String.format("%02d", i), // Formats days as '01', '02', etc.
+                    "day", String.format("%02d", i),
                     "revenue", dailyRev,
                     "cumulativeRevenue", cumulativeRevenue,
                     "goalTrack", dailyGoalStep * i 

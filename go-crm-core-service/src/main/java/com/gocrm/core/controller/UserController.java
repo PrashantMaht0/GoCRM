@@ -18,7 +18,6 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    // 1. Fetch current authenticated user's full details
     @GetMapping("/me")
     public ResponseEntity<User> getCurrentUser(Principal principal) {
         if (principal == null) {
@@ -30,7 +29,6 @@ public class UserController {
                    .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    // 2. Disconnect user from their current company
     @PostMapping("/leave-workspace")
     public ResponseEntity<String> leaveWorkspace(Principal principal) {
         if (principal == null) {

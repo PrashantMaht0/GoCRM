@@ -7,8 +7,7 @@ import java.time.OffsetDateTime;
 @Table(name = "company_bot_settings")
 public class CompanyBotSettings {
 
-    // Using company_id as both the Primary Key and the Foreign Key
-    // This enforces a strict 1-to-1 relationship with the Company table.
+    
     @Id
     @Column(name = "company_id", nullable = false)
     private Long companyId;

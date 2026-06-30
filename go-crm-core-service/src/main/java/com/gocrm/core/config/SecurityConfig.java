@@ -1,7 +1,6 @@
 package com.gocrm.core.config;
 
 import java.util.List;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -54,7 +53,6 @@ public class SecurityConfig {
         configuration.setAllowedOrigins(List.of("http://localhost:5173","http://localhost:5174")); 
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type"));
-        // CRITICAL: Allows HttpOnly cookies to cross ports for your Refresh Tokens
         configuration.setAllowCredentials(true); 
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
